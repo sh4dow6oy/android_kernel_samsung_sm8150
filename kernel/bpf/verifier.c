@@ -3176,29 +3176,60 @@ static int check_cond_jmp_op(struct bpf_verifier_env *env,
 	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JGT &&
 		   dst_reg->type == PTR_TO_PACKET &&
 		   regs[insn->src_reg].type == PTR_TO_PACKET_END) {
-		find_good_pkt_pointers(this_branch, dst_reg, PTR_TO_PACKET);
+		/* pkt_data' > pkt_end */
+		find_good_pkt_pointers(this_branch, dst_reg,
+				       PTR_TO_PACKET);
+	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JGT &&
+		   dst_reg->type == PTR_TO_PACKET_END &&
+		   regs[insn->src_reg].type == PTR_TO_PACKET) {
+		/* pkt_end > pkt_data' */
+		find_good_pkt_pointers(other_branch, &regs[insn->src_reg],
+				       PTR_TO_PACKET);
 	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JLT &&
 		   dst_reg->type == PTR_TO_PACKET &&
 		   regs[insn->src_reg].type == PTR_TO_PACKET_END) {
+		/* pkt_data' < pkt_end */
 		find_good_pkt_pointers(other_branch, dst_reg, PTR_TO_PACKET);
+	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JLT &&
+		   dst_reg->type == PTR_TO_PACKET_END &&
+		   regs[insn->src_reg].type == PTR_TO_PACKET) {
+		/* pkt_end < pkt_data' */
+		find_good_pkt_pointers(this_branch, &regs[insn->src_reg],
+				       PTR_TO_PACKET);
+	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JGE &&
+		   dst_reg->type == PTR_TO_PACKET &&
+		   regs[insn->src_reg].type == PTR_TO_PACKET_END) {
+		/* pkt_data' >= pkt_end */
+		find_good_pkt_pointers(this_branch, dst_reg,
+				       PTR_TO_PACKET);
 	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JGE &&
 		   dst_reg->type == PTR_TO_PACKET_END &&
 		   regs[insn->src_reg].type == PTR_TO_PACKET) {
+		/* pkt_end >= pkt_data' */
 		find_good_pkt_pointers(other_branch, &regs[insn->src_reg],
+				       PTR_TO_PACKET);
+	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JLE &&
+		   dst_reg->type == PTR_TO_PACKET &&
+		   regs[insn->src_reg].type == PTR_TO_PACKET_END) {
+		/* pkt_data' <= pkt_end */
+		find_good_pkt_pointers(other_branch, dst_reg,
 				       PTR_TO_PACKET);
 	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JLE &&
 		   dst_reg->type == PTR_TO_PACKET_END &&
 		   regs[insn->src_reg].type == PTR_TO_PACKET) {
+		/* pkt_end <= pkt_data' */
 		find_good_pkt_pointers(this_branch, &regs[insn->src_reg],
 				       PTR_TO_PACKET);
 	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JGT &&
 		   dst_reg->type == PTR_TO_PACKET_META &&
 		   reg_is_init_pkt_pointer(&regs[insn->src_reg], PTR_TO_PACKET)) {
-		find_good_pkt_pointers(this_branch, dst_reg, PTR_TO_PACKET_META);
+		find_good_pkt_pointers(this_branch, dst_reg,
+				       PTR_TO_PACKET_META);
 	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JLT &&
 		   dst_reg->type == PTR_TO_PACKET_META &&
 		   reg_is_init_pkt_pointer(&regs[insn->src_reg], PTR_TO_PACKET)) {
-		find_good_pkt_pointers(other_branch, dst_reg, PTR_TO_PACKET_META);
+		find_good_pkt_pointers(other_branch, dst_reg,
+				       PTR_TO_PACKET_META);
 	} else if (BPF_SRC(insn->code) == BPF_X && opcode == BPF_JGE &&
 		   reg_is_init_pkt_pointer(dst_reg, PTR_TO_PACKET) &&
 		   regs[insn->src_reg].type == PTR_TO_PACKET_META) {
