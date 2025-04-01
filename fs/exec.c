@@ -77,27 +77,6 @@
 #include <linux/defex.h>
 #endif
 
-#ifdef CONFIG_RKP_KDP
-#define rkp_is_nonroot(x) ((x->cred->type)>>1 & 1)
-#ifdef CONFIG_LOD_SEC
-#define rkp_is_lod(x) ((x->cred->type)>>3 & 1)
-#endif /*CONFIG_LOD_SEC*/
-static unsigned int __is_kdp_recovery __kdp_ro;
-
-static int __init boot_recovery(char *str)
-{
-	int temp = 0;
-
-	if (get_option(&str, &temp)) {
-		__is_kdp_recovery = temp;
-		return 0;
-	}
-
-	return -EINVAL;
-}
-early_param("androidboot.boot_recovery", boot_recovery);
-#endif /*CONFIG_RKP_KDP*/
-
 int suid_dumpable = 0;
 
 static LIST_HEAD(formats);
@@ -1056,10 +1035,6 @@ static int exec_mmap(struct mm_struct *mm)
 	activate_mm(active_mm, mm);
 	tsk->mm->vmacache_seqnum = 0;
 	vmacache_flush(tsk);
-#ifdef CONFIG_RKP_KDP
-	if(rkp_cred_enable)
-		uh_call(UH_APP_RKP, RKP_KDP_X43, (u64)current_cred(), (u64)mm->pgd, 0, 0);
-#endif 
 	task_unlock(tsk);
 	if (old_mm) {
 		up_read(&old_mm->mmap_sem);
@@ -1984,19 +1959,6 @@ SYSCALL_DEFINE3(execve,
 		const char __user *const __user *, argv,
 		const char __user *const __user *, envp)
 {
-#ifdef CONFIG_RKP_KDP
-	struct filename *path = getname(filename);
-	int error = PTR_ERR(path);
-
-	if(IS_ERR(path))
-		return error;
-
-	if(rkp_cred_enable){
-		uh_call(UH_APP_RKP, RKP_KDP_X4B, (u64)path->name, 0, 0, 0);
-	}
-
-	putname(path);
-#endif
 	return do_execve(getname(filename), argv, envp);
 }
 
