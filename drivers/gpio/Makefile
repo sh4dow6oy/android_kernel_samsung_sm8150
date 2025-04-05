@@ -2,7 +2,7 @@
 # generic gpio support: platform drivers, dedicated expander chips, etc
 
 ccflags-$(CONFIG_DEBUG_GPIO)	+= -DDEBUG
-ccflags-y += $(KBUILD_FP_SENSOR_CFLAGS)
+ccflags-y += -DENABLE_SENSORS_FPRINT_SECURE
 
 obj-$(CONFIG_GPIOLIB)		+= devres.o
 obj-$(CONFIG_GPIOLIB)		+= gpiolib.o
