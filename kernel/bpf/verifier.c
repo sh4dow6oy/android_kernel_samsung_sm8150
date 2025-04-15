@@ -3545,7 +3545,7 @@ static int check_return_code(struct bpf_verifier_env *env)
 		return 0;
 	}
 
-	reg = &env->cur_state.regs[BPF_REG_0];
+	reg = cur_regs(env) + BPF_REG_0;
 	if (reg->type != SCALAR_VALUE) {
 		verbose("At program exit the register R0 is not a known value (%s)\n",
 			reg_type_str[reg->type]);
