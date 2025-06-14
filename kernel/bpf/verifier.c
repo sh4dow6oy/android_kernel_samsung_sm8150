@@ -4431,12 +4431,6 @@ static bool func_states_equal(struct bpf_func_state *old,
 	bool ret = false;
 	int i;
 
-	/* Verification state from speculative execution simulation
-	 * must never prune a non-speculative execution one.
-	 */
-	if (old->speculative && !cur->speculative)
-		return false;
-
 	idmap = kcalloc(ID_MAP_SIZE, sizeof(struct idpair), GFP_KERNEL);
 	/* If we failed to allocate the idmap, just say it's not safe */
 	if (!idmap)
@@ -4462,6 +4456,12 @@ static bool states_equal(struct bpf_verifier_env *env,
 	int i;
 
 	if (old->curframe != cur->curframe)
+		return false;
+
+	/* Verification state from speculative execution simulationAdd commentMore actions
+	 * must never prune a non-speculative execution one.
+	 */
+	if (old->speculative && !cur->speculative)
 		return false;
 
 	/* for states to be equal callsites have to be the same

@@ -126,7 +126,6 @@ struct bpf_func_state {
 	/* should be second to last. See copy_func_state() */
 	int allocated_stack;
 	struct bpf_stack_state *stack;
-	bool speculative;
 };
 
 #define MAX_CALL_FRAMES 8
@@ -135,6 +134,7 @@ struct bpf_verifier_state {
 	struct bpf_func_state *frame[MAX_CALL_FRAMES];
 	struct bpf_verifier_state *parent;
 	u32 curframe;
+	bool speculative;
 };
 
 /* linked list of verifier states used to prune search */
