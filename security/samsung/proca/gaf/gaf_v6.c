@@ -133,7 +133,7 @@ static struct GAForensicINFO {
 	.struct_mount_mnt_parent = offsetof(struct mount, mnt_parent),
 	.list_head_struct_next = offsetof(struct list_head, next),
 	.list_head_struct_prev = offsetof(struct list_head, prev),
-#if defined(CONFIG_KDP_NS) || defined(CONFIG_RKP_NS_PROT) || defined(CONFIG_RUSTUH_KDP_NS)
+#if defined(CONFIG_KDP_NS) || defined(CONFIG_RUSTUH_KDP_NS)
 	.is_kdp_ns_on = true,
 	.struct_vfsmount_bp_mount = offsetof(struct kdp_vfsmount, bp_mount),
 #else
