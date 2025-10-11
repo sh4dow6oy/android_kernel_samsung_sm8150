@@ -63,10 +63,6 @@ fw-external-$(CONFIG_SENSORS_A96T3X6_WIFI) += abov/a96t356_wifi_gts6x.bin
 else
 fw-external-$(CONFIG_SENSORS_A96T3X6) += abov/a96t356_beyond1qlte.bin
 endif
-# FIVE
-ifeq ($(CONFIG_FIVE_TEE_DRIVER),y)
-include $(srctree)/firmware/five/Makefile
-endif
 
 fw-shipped-all := $(fw-shipped-y) $(fw-shipped-m) $(fw-shipped-)
 
