@@ -79,9 +79,6 @@
 
 #ifdef CONFIG_RKP_KDP
 #define rkp_is_nonroot(x) ((x->cred->type)>>1 & 1)
-#ifdef CONFIG_LOD_SEC
-#define rkp_is_lod(x) ((x->cred->type)>>3 & 1)
-#endif /*CONFIG_LOD_SEC*/
 static unsigned int __is_kdp_recovery __kdp_ro;
 
 static int __init boot_recovery(char *str)
