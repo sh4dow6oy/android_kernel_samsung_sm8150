@@ -220,10 +220,6 @@ obj-$(CONFIG_COMBO_REDRIVER_PTN36502)	+= redriver/
 # Motor
 obj-y				+= motor/
 
-# FIVE TEE driver
-obj-$(CONFIG_FIVE_TEE_DRIVER)	+= security/samsung/five_tee_driver/
-obj-$(CONFIG_ICD)		+= security/samsung/icdrv/
-
 # streamline
 ifeq ($(CONFIG_GATOR), y)
 	obj-$(CONFIG_GATOR)				+= gator/
