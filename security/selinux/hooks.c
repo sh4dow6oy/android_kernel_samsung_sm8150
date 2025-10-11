@@ -87,10 +87,6 @@
 #include <linux/shm.h>
 #include <linux/bpf.h>
 
-#ifdef CONFIG_LOD_SEC
-#include <linux/linux_on_dex.h>
-#endif
-
 #include "avc.h"
 #include "objsec.h"
 #include "netif.h"
@@ -1827,26 +1823,10 @@ static int cred_has_capability(const struct cred *cred,
 
 	switch (CAP_TO_INDEX(cap)) {
 	case 0:
-#if defined(CONFIG_LOD_SEC)
-		if (!initns && rkp_is_lod_cred(cred)) {
-			sclass = SECCLASS_CAP_LOD;
-		} else {
-			sclass = initns ? SECCLASS_CAPABILITY : SECCLASS_CAP_USERNS;
-		}
-#else
 		sclass = initns ? SECCLASS_CAPABILITY : SECCLASS_CAP_USERNS;
-#endif
 		break;
 	case 1:
-#if defined(CONFIG_LOD_SEC)
-		if (!initns && rkp_is_lod_cred(cred)) {
-			sclass = SECCLASS_CAP2_LOD;
-		} else {
-			sclass = initns ? SECCLASS_CAPABILITY2 : SECCLASS_CAP2_USERNS;
-		}
-#else
 		sclass = initns ? SECCLASS_CAPABILITY2 : SECCLASS_CAP2_USERNS;
-#endif
 		break;
 	default:
 		printk(KERN_ERR

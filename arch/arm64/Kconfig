@@ -2315,10 +2315,6 @@ config MACH_A82XQ_KOR_SKT
         help
           Support for Samsung A82XQ KOR SKT device.
 
-config LOD_SEC
-	bool "kernel security re-enforcement for Linux On Dex, including cap re-check and seccomp report"
-	default n
-
 config SEC_5GMODEL
         depends on ARCH_SM8150
         default n
