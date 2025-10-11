@@ -29,9 +29,6 @@
 #include <linux/debug_locks.h>
 #include <linux/osq_lock.h>
 #include <linux/delay.h>
-#ifdef CONFIG_KPERFMON
-#include <linux/ologk.h>
-#endif
 
 #ifdef CONFIG_DEBUG_MUTEXES
 # include "mutex-debug.h"
@@ -50,12 +47,6 @@ __mutex_init(struct mutex *lock, const char *name, struct lock_class_key *key)
 #endif
 
 	debug_mutex_init(lock, name, key);
-
-#ifdef CONFIG_KPERFMON
-	if (lock != 0) {
-		lock->time = 0;
-	}
-#endif
 }
 EXPORT_SYMBOL(__mutex_init);
 
