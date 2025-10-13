@@ -220,11 +220,6 @@ obj-$(CONFIG_COMBO_REDRIVER_PTN36502)	+= redriver/
 # Motor
 obj-y				+= motor/
 
-# streamline
-ifeq ($(CONFIG_GATOR), y)
-	obj-$(CONFIG_GATOR)				+= gator/
-endif
-
 #TZIC
 obj-$(CONFIG_TZIC)  += security/samsung/tzic/
 
