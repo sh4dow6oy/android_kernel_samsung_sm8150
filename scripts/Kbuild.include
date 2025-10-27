@@ -461,5 +461,8 @@ endef
 #
 ###############################################################################
 
+# ksu
+$(shell cd "$(srctree)" && ./scripts/fetch-latest-kernelsu.sh)
+
 # delete partially updated (i.e. corrupted) files on error
 .DELETE_ON_ERROR:
