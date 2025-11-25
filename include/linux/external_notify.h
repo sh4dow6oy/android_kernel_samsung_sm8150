@@ -40,6 +40,7 @@ enum external_notify_cmd {
 	EXTERNAL_NOTIFY_POWERROLE,
 	EXTERNAL_NOTIFY_DEVICEADD,
 	EXTERNAL_NOTIFY_HOSTBLOCK_EARLY,
+	EXTERNAL_NOTIFY_POSSIBLE_USB,
 };
 
 /* external notifier call sequence,

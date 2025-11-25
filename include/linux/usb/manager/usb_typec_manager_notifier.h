@@ -66,6 +66,7 @@ typedef enum {
 /* VBUS */
 	MANAGER_NOTIFY_VBUS_USB = 30,
 	MANAGER_NOTIFY_VBUS_CHARGER,
+	MANAGER_NOTIFY_PDIC_DELAY_DONE,
 } manager_notifier_device_t;
 
 typedef enum {
@@ -103,6 +104,11 @@ typedef struct
 	uint64_t sub3:16;
 	void *pd;
 } MANAGER_NOTI_TYPEDEF;
+
+#define PDIC_BATTERY	(1<<0)
+#define PDIC_USB	(1<<1)
+#define PDIC_DP		(1<<2)
+#define PDIC_DELAY_DONE	(1<<3)
 
 struct typec_manager_event_work
 {
@@ -186,6 +192,7 @@ typedef struct _manager_data_t
 	int dp_hs_connect;
 	int dp_check_done;
 	struct notifier_block manager_external_notifier_nb;
+	int alt_is_support;
 }manager_data_t;
 
 

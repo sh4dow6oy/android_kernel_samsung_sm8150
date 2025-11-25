@@ -33,6 +33,7 @@ enum otg_notify_events {
 	NOTIFY_EVENT_MMDOCK,
 	NOTIFY_EVENT_HMT,
 	NOTIFY_EVENT_GAMEPAD,
+	NOTIFY_EVENT_HOST_RELOAD,
 	NOTIFY_EVENT_DRIVE_VBUS,
 	NOTIFY_EVENT_ALL_DISABLE,
 	NOTIFY_EVENT_HOST_DISABLE,
@@ -46,6 +47,7 @@ enum otg_notify_events {
 	NOTIFY_EVENT_GAMEPAD_CONNECT,
 	NOTIFY_EVENT_LANHUB_CONNECT,
 	NOTIFY_EVENT_POWER_SOURCE,
+	NOTIFY_EVENT_PD_CONTRACT,
 	NOTIFY_EVENT_VBUSPOWER,
 	NOTIFY_EVENT_POGO,
 	NOTIFY_EVENT_VIRTUAL,
@@ -116,6 +118,7 @@ enum otg_notify_data_role {
 
 enum usb_restrict_type {
 	USB_SECURE_RESTRICTED,
+	USB_TIME_SECURE_RESTRICTED,	
 	USB_SECURE_RELEASE,
 };
 
@@ -134,6 +137,19 @@ enum otg_notify_illegal_type {
 	NOTIFY_EVENT_SECURE_DISCONNECTION,
 };
 
+enum usb_lock_state {
+	USB_NOTIFY_UNLOCK = 0,
+	USB_NOTIFY_LOCK_USB_WORK,
+	USB_NOTIFY_LOCK_USB_RESTRICT,
+	USB_NOTIFY_INIT_STATE = 3,
+};
+
+enum usb_check_allowlist_result {
+	USB_NOTIFY_NOLIST = 0,
+	USB_NOTIFY_ALLOWLOST,
+	USB_NOTIFY_NORESTRICT,
+};
+
 struct otg_notify {
 	int vbus_detect_gpio;
 	int redriver_en_gpio;
@@ -149,6 +165,7 @@ struct otg_notify {
 	int sec_whitelist_enable;
 	int speed;
 	const char *muic_name;
+	int booting_delay_sync_usb;
 	int (*pre_gpio)(int gpio, int use);
 	int (*post_gpio)(int gpio, int use);
 	int (*vbus_drive)(bool);
@@ -197,6 +214,20 @@ extern void put_otg_notify(struct otg_notify *n);
 extern bool is_blocked(struct otg_notify *n, int type);
 extern void send_usb_err_uevent(int err_type, int mode);
 extern int usb_check_whitelist_for_mdm(struct usb_device *dev);
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+extern int usb_check_allowlist_for_lockscreen_enabled_id(struct usb_device *dev);
+#endif
+extern int get_con_dev_max_speed(struct otg_notify *n);
+extern void set_con_dev_max_speed
+		(struct otg_notify *n, int speed);
+extern void set_con_dev_hub(struct otg_notify *n, int speed, int conn);
+extern int is_usbhub(struct usb_device *dev);
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+extern int disconnect_unauthorized_device(struct usb_device *dev);
+extern bool check_usb_restrict_lock_state(struct otg_notify *n);
+#endif
+extern void send_usb_restrict_uevent(int usb_restrict);
+extern int get_typec_status(struct otg_notify *n, int event);
 #if defined(CONFIG_USB_HW_PARAM)
 extern unsigned long long *get_hw_param(struct otg_notify *n,
 					enum usb_hw_param index);
@@ -205,6 +236,7 @@ extern int inc_hw_param(struct otg_notify *n,
 extern int inc_hw_param_host(struct host_notify_dev *dev,
 					enum usb_hw_param index);
 #endif
+extern void enable_usb_notify(void);
 #else
 static inline const char *event_string(enum otg_notify_events event)
 			{return NULL; }
@@ -234,9 +266,25 @@ static inline struct otg_notify *get_otg_notify(void) {return NULL; }
 static inline int set_otg_notify(struct otg_notify *n) {return 0; }
 static inline void put_otg_notify(struct otg_notify *n) {}
 static inline bool is_blocked(struct otg_notify *n, int type) {return false; }
+static inline int get_con_dev_max_speed(struct otg_notify *n)
+			{return 0; }
+static inline void set_con_dev_max_speed
+		(struct otg_notify *n, int speed) {}
 static inline void send_usb_err_uevent(int err_type, int mode) {}
 static inline int usb_check_whitelist_for_mdm(struct usb_device *dev)
 			{return 0; }
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+extern inline int usb_check_allowlist_for_lockscreen_enabled_id(struct usb_device *dev)
+			{return 0; }
+#endif
+static inline void set_con_dev_hub(struct otg_notify *n, int speed, int conn) {}
+static inline int is_usbhub(struct usb_device *dev) {return 0; }
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+static inline int disconnect_unauthorized_device(struct usb_device *dev) {return 0; }
+static inline bool check_usb_restrict_lock_state(struct otg_notify *n) {return false; }
+#endif
+static inline void send_usb_restrict_uevent(int usb_restrict) {}
+static inline int get_typec_status(struct otg_notify *n, int event) {return 0; }
 #if defined(CONFIG_USB_HW_PARAM)
 static unsigned long long *get_hw_param(struct otg_notify *n,
 			enum usb_hw_param index) {return NULL; }
@@ -245,5 +293,6 @@ static int inc_hw_param(struct otg_notify *n,
 static int inc_hw_param_host(struct host_notify_dev *dev,
 			enum usb_hw_param index) {return 0; }
 #endif
+static inline void enable_usb_notify(void) {}
 #endif
 #endif /* __LINUX_USB_NOTIFY_H__ */

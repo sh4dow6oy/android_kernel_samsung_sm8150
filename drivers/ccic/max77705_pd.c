@@ -30,6 +30,9 @@
 #if defined(CONFIG_BATTERY_NOTIFIER)
 #include <linux/battery/battery_notifier.h>
 #endif
+#if IS_ENABLED(CONFIG_USB_NOTIFY_LAYER)
+#include <linux/usb_notify.h>
+#endif
 #if defined(CONFIG_CCIC_NOTIFIER)
 #include <linux/ccic/ccic_core.h>
 #include <linux/ccic/ccic_notifier.h>
@@ -457,8 +460,11 @@ void max77705_vbus_turn_on_ctrl(struct max77705_usbc_platform_data *usbc_data, b
 	struct otg_notify *o_notify = get_otg_notify();
 	bool must_block_host = 0;
 	bool unsupport_host = 0;
+
+#ifdef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION	
 	if (o_notify)
 		must_block_host = is_blocked(o_notify, NOTIFY_BLOCK_TYPE_HOST);
+#endif
 
 	pr_info("%s : enable=%d, auto_vbus_en=%d, must_block_host=%d, swaped=%d\n",
 		__func__, enable, usbc_data->auto_vbus_en, must_block_host, swaped);
@@ -1166,6 +1172,9 @@ static irqreturn_t max77705_psrdy_irq(int irq, void *data)
 #ifdef CONFIG_USB_NOTIFY_PROC_LOG
 	int pd_state = 0;
 #endif
+#if IS_ENABLED(CONFIG_USB_NOTIFY_LAYER)
+	struct otg_notify *o_notify = get_otg_notify();
+#endif
 
 	msg_maxim("IN");
 	max77705_read_reg(usbc_data->muic, REG_PD_STATUS1, &usbc_data->pd_status1);
@@ -1192,6 +1201,12 @@ static irqreturn_t max77705_psrdy_irq(int irq, void *data)
 #if defined(CONFIG_TYPEC)
 	mode = max77705_get_pd_support(usbc_data);
 	typec_set_pwr_opmode(usbc_data->port, mode);
+#endif
+#if IS_ENABLED(CONFIG_USB_NOTIFY_LAYER)
+	if (mode == TYPEC_PWR_MODE_PD)
+		send_otg_notify(o_notify, NOTIFY_EVENT_PD_CONTRACT, 1);
+	else
+		send_otg_notify(o_notify, NOTIFY_EVENT_PD_CONTRACT, 0);
 #endif
 
 	if (usbc_data->pd_data->cc_status == CC_SNK && psrdy_received) {
