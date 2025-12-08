@@ -28,31 +28,19 @@
 
 /* TODO : add IP Header file include*/
 #if defined(CONFIG_CHARGER_S2MU107)
-#if defined(CONFIG_BATTERY_SAMSUNG_LEGO_STYLE)
-#include "../battery/charger/s2mu107_switching_charger.h"
-#else
 #include "../battery_v2/include/charger/s2mu107_switching_charger.h"
-#endif
 #endif
 #if defined(CONFIG_MUIC_S2MU107)
 #include <linux/muic/s2mu107-muic.h>
 #endif
 #if defined(CONFIG_PM_S2MU107)
-#if defined(CONFIG_BATTERY_SAMSUNG_LEGO_STYLE)
-#include "../battery/charger/s2mu107_pmeter.h"
-#else
 #include "../battery_v2/include/s2mu107_pmeter.h"
-#endif
 #endif
 #if defined(CONFIG_LEDS_S2MU107_FLASH)
 #include <linux/leds-s2mu107.h>
 #endif
 #if defined(CONFIG_CHARGER_S2MU107_DIRECT)
-#if defined(CONFIG_BATTERY_SAMSUNG_LEGO_STYLE)
-#include "../battery/charger/s2mu107_direct_charger.h"
-#else
 #include "../battery_v2/include/charger/s2mu107_direct_charger.h"
-#endif
 #endif
 static const u8 s2mu107_mask_reg[] = {
 #if defined(CONFIG_LEDS_S2MU107_FLASH)

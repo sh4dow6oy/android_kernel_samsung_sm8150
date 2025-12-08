@@ -49,11 +49,7 @@
 
 /* powermeter */
 #if defined(CONFIG_PM_S2MU107)
-#if defined(CONFIG_BATTERY_SAMSUNG_LEGO_STYLE)
-#include "../battery/charger/s2mu107_pmeter.h"
-#else
 #include "../battery_v2/include/s2mu107_pmeter.h"
-#endif
 #endif
 
 

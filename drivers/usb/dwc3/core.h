@@ -37,11 +37,7 @@
 
 #include <linux/phy/phy.h>
 #ifdef CONFIG_USB_CHARGING_EVENT
-#if defined(CONFIG_BATTERY_SAMSUNG_LEGO_STYLE)
-#include "../../battery/common/include/sec_charging_common.h"
-#else
 #include "../../battery_v2/include/sec_charging_common.h"
-#endif
 #endif
 
 #define DWC3_MSG_MAX	500

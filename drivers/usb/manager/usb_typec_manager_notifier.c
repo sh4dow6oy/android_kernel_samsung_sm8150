@@ -40,8 +40,6 @@
 
 #if defined(CONFIG_BATTERY_SAMSUNG_V2)
 #include "../../battery_v2/include/sec_charging_common.h"
-#elif defined(CONFIG_BATTERY_SAMSUNG_LEGO_STYLE)
-#include "../../battery/common/include/sec_charging_common.h"
 #else
 #include <linux/battery/sec_charging_common.h>
 #endif
