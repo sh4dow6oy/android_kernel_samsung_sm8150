@@ -310,6 +310,7 @@
 		battery,ttf_hv_12v_wireless_charge_current = <2050>;
 		battery,ttf_hv_wireless_charge_current = <1300>;
 		battery,ttf_wireless_charge_current = <890>;
+		battery,ttf_dc25_charge_current = <2700>;
 
 		battery,rp_current_rp1 = <500>;
 		battery,rp_current_rp2 = <1500>;
@@ -319,6 +320,7 @@
 
 		battery,pd_charging_charge_power = <15000>;
 		battery,max_charging_current = <2350>;
+		battery,max_charging_charge_power = <25000>; /* 25W */
 
 		/* cycle, chg_float_voltage, recharge_condition_vcell, full_condition_vcell, full_condition_soc, step charging condition */
 		battery,age_data = <0 4350 4280 4250 93 45
@@ -341,6 +343,17 @@
 		battery,step_charging_condition_curr = <2350 2350>;
 		battery,step_charging_current = <3150 2350>;
 		battery,step_charging_float_voltage = <4150 4350>;
+
+		/* direct step charging option */
+		battery,dc_step_chg_type = <0x6B>; /* origin(0x6B), soc option is temporary removed */
+		battery,dc_step_chg_charge_power = <22000>;
+		battery,dc_step_chg_step = <3>;
+		battery,dc_step_chg_cond_vol = <4150 4220 4350>; /* STEP_CHARGING_CONDITION_VOLTAGE */ 
+		battery,dc_step_chg_cond_iin = <1530 1220 0>; /* STEP_CHARGING_CONDITION_INPUT_CURRENT */
+		battery,dc_step_chg_iin_check_cnt = <3>;
+		battery,dc_step_chg_cond_soc = <40 60 100>; /* STEP_CHARGING_CONDITION_SOC */
+		battery,dc_step_chg_val_vfloat = <4150 4220 4350>; /* STEP_CHARGING_CONDITION_FLOAT_VOLTAGE */
+		battery,dc_step_chg_val_iout = <3960 3060 2440>;
 
 		battery,max_input_voltage = <9000>; /* mV */
 		battery,max_input_current = <3000>;  /* mA */
