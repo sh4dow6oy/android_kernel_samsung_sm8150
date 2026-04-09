@@ -173,19 +173,6 @@
 		reg = <0x1 0x00000000 0x0 0x0AD00000>;
 	};
 
-	/*to reserve 2MB for TIMA */
-	tima_mem: tima_region@B0000000 {
-		compatible = "removed-dma-pool";
-		no-map;
-		reg = <0 0xB0000000 0 0x200000>;
-	};
-
-	/* rkp_region reserves for RKP */
-	rkp_region: rkp_region@B0200000 {
-		compatible = "removed-dma-pool";
-		reg = <0x0 0xB0200000 0x0 0x200000>;
-	};
-
 	/* Kaslr offset reserve */
 	kaslrOffset_region: kaslrOffset_region@80001000 {
 		compatible = "removed-dma-pool";
