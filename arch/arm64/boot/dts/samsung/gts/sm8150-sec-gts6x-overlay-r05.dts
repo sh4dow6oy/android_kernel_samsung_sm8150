@@ -29,7 +29,7 @@
 #include "sm8150-sec-gts6x-displayport-r05.dtsi"
 #include "battery-data-gts6x-common.dtsi"
 #include "sm8150-max77705-motor.dtsi"
-#include "sm8150-max77705.dtsi"
+#include "sm8150-max77705-sm5504.dtsi"
 #include "sm8150-sec-beyond2qlte-sensor-common.dtsi"
 #include "sm8150-sec-gts5l-fingerprint-sensor-r00.dtsi"
 #include "sm8150-camera-sensor-gts5lqlte-r00.dtsi"
