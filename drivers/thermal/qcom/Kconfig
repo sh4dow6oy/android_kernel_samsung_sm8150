@@ -135,11 +135,9 @@ config QTI_RPM_SMD_COOLING_DEVICE
 
 	  If you want this support, you should say Y here.
 
-config QTI_BUS_SCALING_COOLING_DEVICE
-	tristate "QTI DDR bus scaling cooling device driver"
-	depends on THERMAL_OF && QCOM_BUS_SCALING
+config SEC_EXT_THERMAL_MONITOR
+	bool "Samsung external thermal monitor"
+	default n
 	help
-	   This enables the QTI DDR bus scaling cooling devices. These cooling
-	   devices will be used by QTI chipset to place a DDR state request
-	   to meet the performance requirement under thermally constrained
-	   conditions.
+	  This enables external thermal monitor to get hint whether if there's
+	  external cause or not.

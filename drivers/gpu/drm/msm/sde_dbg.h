@@ -66,7 +66,7 @@ enum sde_dbg_dump_context {
  * sysfs node or panic. This prevents kernel log from evtlog message
  * flood.
  */
-#define SDE_EVTLOG_PRINT_ENTRY	256
+#define SDE_EVTLOG_PRINT_ENTRY	1024
 
 /*
  * evtlog keeps this number of entries in memory for debug purpose. This
@@ -351,6 +351,12 @@ void sde_evtlog_set_filter(struct sde_dbg_evtlog *evtlog, char *filter);
  */
 int sde_evtlog_get_filter(struct sde_dbg_evtlog *evtlog, int index,
 		char *buf, size_t bufsz);
+
+#if defined(CONFIG_DISPLAY_SAMSUNG) || defined(CONFIG_DISPLAY_SAMSUNG_LEGO)
+void ss_sde_dbg_debugfs_open(void);
+ssize_t ss_sde_evtlog_dump_read(struct file *file, char __user *buff,
+		size_t count, loff_t *ppos);
+#endif
 
 #ifndef CONFIG_DRM_SDE_RSC
 static inline void sde_rsc_debug_dump(u32 mux_sel)

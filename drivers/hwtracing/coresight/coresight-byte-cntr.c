@@ -1,4 +1,5 @@
 /* Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
+
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -223,7 +224,7 @@ static int tmc_etr_byte_cntr_release(struct inode *in, struct file *fp)
 	byte_cntr_data->read_active = false;
 
 	if (byte_cntr_data->enable)
-		coresight_csr_set_byte_cntr(byte_cntr_data->csr, 0);
+         coresight_csr_set_byte_cntr(byte_cntr_data->csr, 0);
 	mutex_unlock(&byte_cntr_data->byte_cntr_lock);
 
 	return 0;

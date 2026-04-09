@@ -1,4 +1,4 @@
-/* Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -170,6 +170,7 @@ struct sde_rsc_bw_config {
  * @disp_rsc:		display rsc handle
  * @drv_io:		sde drv io data mapping
  * @wrapper_io:		wrapper io data mapping
+ * @dispcc_io:		display cc io data mapping
  *
  * @client_list:	current rsc client list handle
  * @event_list:		current rsc event list handle
@@ -201,7 +202,6 @@ struct sde_rsc_bw_config {
  * rsc_vsync_wait:   Refcount to indicate if we have to wait for the vsync.
  * rsc_vsync_waitq:   Queue to wait for the vsync.
  * bw_config:		check sde_rsc_bw_config structure description.
- * post_poms:		bool if a panel mode change occurred
  */
 struct sde_rsc_priv {
 	u32 version;
@@ -214,6 +214,7 @@ struct sde_rsc_priv {
 	struct rpmh_client *disp_rsc;
 	struct dss_io_data drv_io;
 	struct dss_io_data wrapper_io;
+	struct dss_io_data dispcc_io;
 
 	struct list_head client_list;
 	struct list_head event_list;
@@ -243,7 +244,6 @@ struct sde_rsc_priv {
 	wait_queue_head_t rsc_vsync_waitq;
 
 	struct sde_rsc_bw_config bw_config;
-	bool post_poms;
 };
 
 /**

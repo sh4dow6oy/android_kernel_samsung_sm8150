@@ -395,7 +395,7 @@ static int uvc_parse_format(struct uvc_device *dev,
 	unsigned int width_multiplier = 1;
 	unsigned int interval;
 	unsigned int i, n;
-	__u8 ftype;
+	u8 ftype = UVC_VS_UNDEFINED;
 
 	format->type = buffer[2];
 	format->index = buffer[3];
@@ -532,7 +532,7 @@ static int uvc_parse_format(struct uvc_device *dev,
 	 * based formats have frame descriptors.
 	 */
 	while (buflen > 2 && buffer[1] == USB_DT_CS_INTERFACE &&
-	       buffer[2] == ftype) {
+	       buffer[2] == ftype && buffer[2] != UVC_VS_UNDEFINED) {
 		frame = &format->frame[format->nframes];
 		if (ftype != UVC_VS_FRAME_FRAME_BASED)
 			n = buflen > 25 ? buffer[25] : 0;
@@ -1450,7 +1450,7 @@ static int uvc_scan_chain_forward(struct uvc_video_chain *chain,
 			uvc_trace(UVC_TRACE_DESCR, "Found reference to "
 				"entity %d already in chain.\n", forward->id);
 			return -EINVAL;
-		}
+		}		
 
 		switch (UVC_ENTITY_TYPE(forward)) {
 		case UVC_VC_EXTENSION_UNIT:

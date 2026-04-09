@@ -1,4 +1,4 @@
-/* Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -453,6 +453,14 @@ static void activate_work_func(struct work_struct *work)
 	do_clk_scaling();
 }
 
+static u64 icmp_last_sent;
+void ipa_pm_update_last_icmp_sent(u64 time)
+{
+	icmp_last_sent = time;
+	IPA_PM_DBG_LOW("update icmp last : %llu\n", time);
+}
+EXPORT_SYMBOL(ipa_pm_update_last_icmp_sent);
+
 /**
  * delayed_deferred_deactivate_work_func - deferred deactivate on a work queue
  */
@@ -483,6 +491,14 @@ static void delayed_deferred_deactivate_work_func(struct work_struct *work)
 		client->state = IPA_PM_ACTIVATED_PENDING_DEACTIVATION;
 		goto bail;
 	case IPA_PM_ACTIVATED_PENDING_DEACTIVATION:
+		/* sustain active state for icmp low latency */
+		delay = IPA_PM_DEFERRED_TIMEOUT;
+		if (local_clock() - icmp_last_sent < 2 * 1000 * 1000 * 1000) {
+			queue_delayed_work(ipa_pm_ctx->wq,
+					   &client->deactivate_work,
+					   msecs_to_jiffies(delay));
+			goto bail;
+		}
 		client->state = IPA_PM_DEACTIVATED;
 		IPA_PM_DBG_STATE(client->hdl, client->name, client->state);
 		spin_unlock_irqrestore(&client->state_lock, flags);
@@ -637,7 +653,6 @@ int ipa_pm_init(struct ipa_pm_init_params *params)
 	if (!ipa_pm_ctx->wq) {
 		IPA_PM_ERR("create workqueue failed\n");
 		kfree(ipa_pm_ctx);
-		ipa_pm_ctx = NULL;
 		return -ENOMEM;
 	}
 
@@ -1255,15 +1270,14 @@ int ipa_pm_set_throughput(u32 hdl, int throughput)
 		return -EINVAL;
 	}
 
-	mutex_lock(&ipa_pm_ctx->client_mutex);
 	if (hdl >= IPA_PM_MAX_CLIENTS || ipa_pm_ctx->clients[hdl] == NULL
 		|| throughput < 0) {
 		IPA_PM_ERR("Invalid Params\n");
-		mutex_unlock(&ipa_pm_ctx->client_mutex);
 		return -EINVAL;
 	}
 	client = ipa_pm_ctx->clients[hdl];
 
+	mutex_lock(&ipa_pm_ctx->client_mutex);
 	if (client->group == IPA_PM_GROUP_DEFAULT)
 		IPA_PM_DBG_LOW("Old throughput: %d\n",  client->throughput);
 	else
@@ -1282,16 +1296,14 @@ int ipa_pm_set_throughput(u32 hdl, int throughput)
 			client->group, ipa_pm_ctx->group_tput[client->group]);
 	mutex_unlock(&ipa_pm_ctx->client_mutex);
 
-	if (ipa_pm_ctx->clients[hdl]) {
-		spin_lock_irqsave(&client->state_lock, flags);
-		if (IPA_PM_STATE_ACTIVE(client->state) || (client->group !=
+	spin_lock_irqsave(&client->state_lock, flags);
+	if (IPA_PM_STATE_ACTIVE(client->state) || (client->group !=
 			IPA_PM_GROUP_DEFAULT)) {
-			spin_unlock_irqrestore(&client->state_lock, flags);
-			do_clk_scaling();
-			return 0;
-		}
 		spin_unlock_irqrestore(&client->state_lock, flags);
+		do_clk_scaling();
+		return 0;
 	}
+	spin_unlock_irqrestore(&client->state_lock, flags);
 
 	return 0;
 }

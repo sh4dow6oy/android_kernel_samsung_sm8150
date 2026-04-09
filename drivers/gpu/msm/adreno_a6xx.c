@@ -1,4 +1,4 @@
-/* Copyright (c)2017-2021, The Linux Foundation. All rights reserved.
+/* Copyright (c)2017-2020, The Linux Foundation. All rights reserved.
  * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -870,7 +870,7 @@ static void a6xx_start(struct adreno_device *adreno_dev)
 	if (gmu_core_isenabled(device))
 		gmu_core_regrmw(device, A6XX_GMU_CX_GMU_POWER_COUNTER_SELECT_1,
 				0xff, 0x4);
-
+	
 	/* Turn on GX_MEM retention */
 	if (gmu_core_gpmu_isenabled(device) && adreno_is_a612(adreno_dev)) {
 		kgsl_regwrite(device, A6XX_RBBM_BLOCK_GX_RETENTION_CNTL, 0x7FB);
@@ -954,6 +954,7 @@ static void a6xx_start(struct adreno_device *adreno_dev)
 	if (adreno_is_preemption_enabled(adreno_dev))
 		kgsl_regwrite(device, A6XX_RB_CONTEXT_SWITCH_GMEM_SAVE_RESTORE,
 			0x1);
+
 	/*
 	 * Enable GMU power counter 0 to count GPU busy. This is applicable to
 	 * all a6xx targets
@@ -3100,7 +3101,6 @@ static const struct adreno_reg_offsets a6xx_reg_offsets = {
 	.offsets = a6xx_register_offsets,
 	.offset_0 = ADRENO_REG_REGISTER_MAX,
 };
-
 
 static int a6xx_perfcounter_update(struct adreno_device *adreno_dev,
 	struct adreno_perfcount_register *reg, bool update_reg)

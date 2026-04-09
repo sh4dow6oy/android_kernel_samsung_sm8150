@@ -371,6 +371,31 @@ static int _acd_store(struct adreno_device *adreno_dev, unsigned int val)
 	return gmu_core_acd_set(device, val);
 }
 
+static unsigned int _perfcounter_show(struct adreno_device *adreno_dev)
+{
+	return adreno_dev->perfcounter;
+}
+
+static int _perfcounter_store(struct adreno_device *adreno_dev,
+		unsigned int val)
+{
+	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
+
+	if (adreno_dev->perfcounter == val)
+		return 0;
+
+	mutex_lock(&device->mutex);
+
+	/* Power down the GPU before changing the state */
+	kgsl_pwrctrl_change_state(device, KGSL_STATE_SUSPEND);
+	adreno_dev->perfcounter = val;
+	kgsl_pwrctrl_change_state(device, KGSL_STATE_SLUMBER);
+
+	mutex_unlock(&device->mutex);
+
+	return 0;
+}
+
 static unsigned int _acd_version_show(struct adreno_device *adreno_dev)
 {
 	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
@@ -526,31 +551,6 @@ static int _acd_data_store(struct adreno_device *adreno_dev, unsigned int val)
 
 	cmd = &gmu->hfi.acd_tbl_cmd;
 	cmd->data[index] = val;
-	return 0;
-}
-
-static unsigned int _perfcounter_show(struct adreno_device *adreno_dev)
-{
-	return adreno_dev->perfcounter;
-}
-
-static int _perfcounter_store(struct adreno_device *adreno_dev,
-		unsigned int val)
-{
-	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
-
-	if (adreno_dev->perfcounter == val)
-		return 0;
-
-	mutex_lock(&device->mutex);
-
-	/* Power down the GPU before changing the state */
-	kgsl_pwrctrl_change_state(device, KGSL_STATE_SUSPEND);
-	adreno_dev->perfcounter = val;
-	kgsl_pwrctrl_change_state(device, KGSL_STATE_SLUMBER);
-
-	mutex_unlock(&device->mutex);
-
 	return 0;
 }
 

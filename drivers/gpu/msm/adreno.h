@@ -444,6 +444,13 @@ enum gpu_coresight_sources {
 	GPU_CORESIGHT_MAX,
 };
 
+struct page_fault_info {
+	unsigned long addr;
+	unsigned long jiff;
+	u64 ttbr;
+	unsigned int count;
+};
+
 /**
  * struct adreno_device - The mothership structure for all adreno related info
  * @dev: Reference to struct kgsl_device
@@ -609,12 +616,13 @@ struct adreno_device {
 	bool gpuhtw_llc_slice_enable;
 	void *zap_handle_ptr;
 	unsigned int soc_hw_rev;
-	bool gaming_bin;
 	/*
 	 * @perfcounter: Flag to clear perfcounters across contexts and
 	 * controls perfcounter ioctl read
 	 */
 	bool perfcounter;
+	bool gaming_bin;
+	struct page_fault_info pf_info;
 };
 
 /**
