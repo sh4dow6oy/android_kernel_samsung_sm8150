@@ -178,6 +178,6 @@
 
 &qupv3_se4_i2c {
 	sm5720@66 {
-			max77705,blocking_waterevent;
+		max77705,blocking_waterevent;
 	};
 };

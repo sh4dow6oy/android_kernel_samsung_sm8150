@@ -155,6 +155,12 @@
 		 0x87 0x70>;
 };
 
+&qupv3_se4_i2c {
+	sm5720@66 {
+		max77705,blocking_waterevent;
+	};
+};
+
 &qupv3_se13_4uart {
 	pinctrl-0 = <&qupv3_se13_ctsrx>, <&qupv3_se13_rts>,
 					<&qupv3_se13_tx>;

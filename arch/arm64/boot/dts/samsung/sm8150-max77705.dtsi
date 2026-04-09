@@ -64,6 +64,37 @@
 #endif
 };
 
+		/* SE 4 pin mappings */
+&qupv3_se4_i2c_active {
+	mux {
+		pins = "gpio51", "gpio52";
+		function = "qup4";
+	};
+
+	config {
+		pins = "gpio51", "gpio52";
+		drive-strength = <2>;
+		bias-disable;
+		input-enable;
+		bias-pull-up;
+	};
+};
+
+&qupv3_se4_i2c_sleep {
+	mux {
+		pins = "gpio51", "gpio52";
+		function = "gpio";
+	};
+
+	config {
+		pins = "gpio51", "gpio52";
+		drive-strength = <2>;
+		bias-disable;
+		input-enable;
+		bias-pull-up;
+	};
+};
+
 &qupv3_se4_i2c {
 	status = "ok";
 
@@ -89,28 +120,5 @@
 			haptic,mode = <1>;
 			haptic,divisor = <128>;
 			max77705,support-audio;
-	};
-
-	sm5504@14{
-		status = "okay";
-		compatible = "sm5504,i2c";
-		reg = <0x14>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&muic_sub_int>;
-		sm5504,irq-gpio = <&tlmm 122 0x00>;
-	};
-};
-
-&tlmm {
-	muic_sub_int: muic_sub_int {
-		mux {
-			pins = "gpio122";
-			function = "gpio";
-		};
-		config {
-			pins = "gpio122";
-			drive-strength = <2>;
-			bias-disable;
-		};
 	};
 };
