@@ -256,9 +256,7 @@ kek_t *get_kek(int engine_id, int kek_type, int *rc) {
 	kek_pack_t *pack;
 	kek_item_t *item;
 	kek_t *kek;
-#ifndef CONFIG_SDP_KEY_DUMP
     int userid = from_kuid(&init_user_ns, current_uid()) / PER_USER_RANGE;
-#endif
 
 	KEK_PACK_LOGD("entered [%d]\n", from_kuid(&init_user_ns, current_uid()));
 
@@ -268,7 +266,6 @@ kek_t *get_kek(int engine_id, int kek_type, int *rc) {
 	    return NULL;
 	}
 
-#ifndef CONFIG_SDP_KEY_DUMP
 	// Across user engine access denied for Knox containers.
 	if(!is_root() &&
 			(pack->user_id >= 10 && pack->user_id < 200) &&
@@ -280,7 +277,7 @@ kek_t *get_kek(int engine_id, int kek_type, int *rc) {
 	    *rc = -EACCES;
 	    return NULL;
 	}
-#endif
+
 	kek = kmalloc(sizeof(kek_t), GFP_KERNEL);
 	if (kek == NULL) {
 		*rc = -ENOMEM;
