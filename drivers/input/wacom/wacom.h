@@ -6,6 +6,8 @@
 
 #include "wacom_i2c.h"
 
+#define SW_PEN_INSERT		0x13  /* set = pen insert, remove */
+
 /* wacom features */
 #define USE_OPEN_CLOSE
 #define WACOM_USE_SURVEY_MODE /* SURVEY MODE is LPM mode : Only detect grage(pdct) & aop */

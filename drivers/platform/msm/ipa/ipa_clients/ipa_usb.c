@@ -2179,6 +2179,7 @@ connect_fail:
 			ipa3_usb_ctx->ttype_ctx[ttype].pm_ctx.hdl);
 	else
 		ipa3_usb_release_prod(ttype);
+
 	return result;
 }
 

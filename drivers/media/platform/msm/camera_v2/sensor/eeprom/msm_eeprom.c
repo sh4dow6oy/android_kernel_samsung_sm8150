@@ -408,6 +408,67 @@ static int eeprom_parse_memory_map(struct msm_eeprom_ctrl_t *e_ctrl,
 				memptr += eeprom_map->mem_settings[i].reg_data;
 			}
 			break;
+			case MSM_CAM_READ_PAGE: {
+				int x = 0;
+				const int inc = 5;
+				const int nunit = 2;
+				const int cnBatch = inc * nunit;
+				const int cnLimit =
+					mem_setting.reg_data / cnBatch * inc;
+				const int cnNotYet =
+					mem_setting.reg_data % cnBatch;
+
+				e_ctrl->i2c_client.addr_type =
+					mem_setting.addr_type;
+
+				for (x = 0; x < cnLimit; x += inc) {
+					rc = i2c_func_tbl->i2c_read_seq(
+						&(e_ctrl->i2c_client),
+						mem_setting.reg_addr+x,
+						memptr, cnBatch);
+
+					if (rc < 0) {
+						pr_err("%s: read failed\n",
+							__func__);
+						goto clean_up;
+					}
+					memptr += cnBatch;
+				}
+
+				if (cnNotYet > 0) {
+					rc = i2c_func_tbl->i2c_read_seq(
+						&(e_ctrl->i2c_client),
+						mem_setting.reg_addr+x,
+						memptr, cnNotYet);
+					if (rc < 0) {
+						pr_err("%s: read failed at final readout\n",
+							__func__);
+						goto clean_up;
+					}
+					memptr += cnNotYet;
+				}
+			}
+			break;
+			case MSM_CAM_READ_CONTINUOUS: {
+				int j = 0;
+
+				e_ctrl->i2c_client.addr_type =
+					mem_setting.addr_type;
+				for (j = 0; j < mem_setting.reg_data; j++) {
+					rc = i2c_func_tbl->i2c_read_seq(
+						&(e_ctrl->i2c_client),
+						mem_setting.reg_addr+j,
+						memptr, 1);
+					msleep(mem_setting.delay);
+					if (rc < 0) {
+						pr_err("%s: read failed\n",
+							__func__);
+						goto clean_up;
+					}
+					memptr++;
+				}
+			}
+			break;
 			default:
 				pr_err("%s: %d Invalid i2c operation LC:%d\n",
 					__func__, __LINE__, i);

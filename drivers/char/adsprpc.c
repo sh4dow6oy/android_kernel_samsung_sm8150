@@ -623,6 +623,7 @@ static int fastrpc_mmap_find(struct fastrpc_file *fl, int fd,
 
 	if ((va + len) < va)
 		return -EOVERFLOW;
+
 	hlist_for_each_entry_safe(map, n, &fl->maps, hn) {
 		if (va >= map->va &&
 				va + len <= map->va + map->len &&
@@ -695,13 +696,14 @@ static int fastrpc_mmap_remove(struct fastrpc_file *fl, uintptr_t va,
 		return 0;
 	}
 	hlist_for_each_entry_safe(map, n, &fl->maps, hn) {
+		/* Remove if only one reference map and no context map */
 		if (map->refs == 1 &&
 			!map->ctx_refs &&
 			map->raddr == va &&
 			map->raddr + map->len == va + len &&
 			/* Remove map only if it isn't being used by DSP */
 			!map->dma_handle_refs &&
-			/* Remove map if not used in process initialization*/
+			/* Remove map if not used in process initialization */
 			!map->is_filemap) {
 			match = map;
 			hlist_del_init(&map->hn);
@@ -1524,7 +1526,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 		if (!err && ctx->maps[i])
 			ctx->maps[i]->dma_handle_refs++;
 		if (err) {
- 			for (j = bufs; j < i; j++) {
+			for (j = bufs; j < i; j++) {
 				if (ctx->maps[j] &&
 					ctx->maps[j]->dma_handle_refs) {
 					ctx->maps[j]->dma_handle_refs--;
@@ -2314,7 +2316,7 @@ static int fastrpc_init_process(struct fastrpc_file *fl,
 		if (!init->filelen)
 			goto bail;
 
-		proc_name = kzalloc(init->filelen, GFP_KERNEL);
+		proc_name = kzalloc(init->filelen + 1, GFP_KERNEL);
 		VERIFY(err, !IS_ERR_OR_NULL(proc_name));
 		if (err)
 			goto bail;
@@ -4564,6 +4566,7 @@ static struct platform_driver fastrpc_driver = {
 static const struct rpmsg_device_id fastrpc_rpmsg_match[] = {
 	{ FASTRPC_GLINK_GUID },
 	{ FASTRPC_SMD_GUID },
+	{},
 };
 
 static const struct of_device_id fastrpc_rpmsg_of_match[] = {

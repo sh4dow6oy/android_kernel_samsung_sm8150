@@ -49,7 +49,7 @@ static void *memshare_ramdump_dev[MAX_CLIENTS];
 static struct device *memshare_dev[MAX_CLIENTS];
 
 #ifdef CONFIG_CP_DYNAMIC_MEM_RESERVE
-extern sec_reserved_mem(void);
+extern unsigned int sec_reserved_mem(void);
 #define RESERVE_MEM_LEVEL1_MASK (1u << 2)
 #define RESERVE_MEM_LEVEL2_MASK (1u << 3)
 #endif
@@ -683,8 +683,12 @@ static void handle_alloc_generic_req(struct qmi_handle *handle,
 		return;
 	}
 
-	if (!memblock[client_id].allotted) {
-		if (memblock[client_id].guard_band && alloc_req->num_bytes > 0)
+	if (!memblock[client_id].allotted && alloc_req->num_bytes > 0) {
+
+		if (alloc_req->num_bytes > memblock[client_id].init_size)
+			alloc_req->num_bytes = memblock[client_id].init_size;
+
+		if (memblock[client_id].guard_band)
 			size = alloc_req->num_bytes + MEMSHARE_GUARD_BYTES;
 		else
 			size = alloc_req->num_bytes;

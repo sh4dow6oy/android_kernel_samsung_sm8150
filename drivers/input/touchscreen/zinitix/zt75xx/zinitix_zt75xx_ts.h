@@ -44,6 +44,8 @@
 
 #define ZT75XX_TS_NVM_OFFSET_LENGTH		(ZT75XX_TS_NVM_OFFSET_HISTORY_QUEUE_ZERO + ZT75XX_TS_NVM_OFFSET_HISTORY_QUEUE_SIZE)
 
+#define SW_GLOVE		0x20  /* set = glove mode */
+
 /*
  * bit value should be made a promise with InputFramework.
  *	bit	: feature

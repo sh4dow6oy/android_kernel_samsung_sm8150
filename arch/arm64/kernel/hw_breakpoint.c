@@ -78,18 +78,13 @@ int hw_breakpoint_slots(int type)
 		AARCH64_DBG_WRITE(N, REG, VAL);	\
 		break
 
-#define _READ_WB_REG_CASE(OFF, N, REG, VAL)	\
- 	READ_WB_REG_CASE(OFF,  5, REG, VAL);
-#define _WRITE_WB_REG_CASE(OFF, N, REG, VAL)	\
- 	WRITE_WB_REG_CASE(OFF,  5, REG, VAL);
-
 #define GEN_READ_WB_REG_CASES(OFF, REG, VAL)	\
 	READ_WB_REG_CASE(OFF,  0, REG, VAL);	\
 	READ_WB_REG_CASE(OFF,  1, REG, VAL);	\
 	READ_WB_REG_CASE(OFF,  2, REG, VAL);	\
 	READ_WB_REG_CASE(OFF,  3, REG, VAL);	\
 	READ_WB_REG_CASE(OFF,  4, REG, VAL);	\
-	_READ_WB_REG_CASE(OFF,  5, REG, VAL);	\
+	READ_WB_REG_CASE(OFF,  5, REG, VAL);	\
 	READ_WB_REG_CASE(OFF,  6, REG, VAL);	\
 	READ_WB_REG_CASE(OFF,  7, REG, VAL);	\
 	READ_WB_REG_CASE(OFF,  8, REG, VAL);	\
@@ -107,7 +102,7 @@ int hw_breakpoint_slots(int type)
 	WRITE_WB_REG_CASE(OFF,  2, REG, VAL);	\
 	WRITE_WB_REG_CASE(OFF,  3, REG, VAL);	\
 	WRITE_WB_REG_CASE(OFF,  4, REG, VAL);	\
-	_WRITE_WB_REG_CASE(OFF,  5, REG, VAL);	\
+	WRITE_WB_REG_CASE(OFF,  5, REG, VAL);	\
 	WRITE_WB_REG_CASE(OFF,  6, REG, VAL);	\
 	WRITE_WB_REG_CASE(OFF,  7, REG, VAL);	\
 	WRITE_WB_REG_CASE(OFF,  8, REG, VAL);	\
@@ -667,7 +662,7 @@ static int breakpoint_handler(unsigned long unused, unsigned int esr,
 		perf_bp_event(bp, regs);
 
 		/* Do we need to handle the stepping? */
-		if (is_default_overflow_handler(bp))
+		if (uses_default_overflow_handler(bp))
 			step = 1;
 unlock:
 		rcu_read_unlock();
@@ -746,7 +741,7 @@ static u64 get_distance_from_watchpoint(unsigned long addr, u64 val,
 static int watchpoint_report(struct perf_event *wp, unsigned long addr,
 			     struct pt_regs *regs)
 {
-	int step = is_default_overflow_handler(wp);
+	int step = uses_default_overflow_handler(wp);
 	struct arch_hw_breakpoint *info = counter_arch_bp(wp);
 
 	info->trigger = addr;

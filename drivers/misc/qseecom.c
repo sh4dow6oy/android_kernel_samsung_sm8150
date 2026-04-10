@@ -3569,7 +3569,8 @@ int __qseecom_process_reentrancy(struct qseecom_command_scm_resp *resp,
 }
 
 static int __qseecom_send_cmd(struct qseecom_dev_handle *data,
-				struct qseecom_send_cmd_req *req)
+			struct qseecom_send_cmd_req *req,
+			bool is_phys_adr)
 {
 	int ret = 0;
 	u32 reqd_len_sb_in = 0;
@@ -3611,8 +3612,19 @@ static int __qseecom_send_cmd(struct qseecom_dev_handle *data,
 
 	if (qseecom.qsee_version < QSEE_VERSION_40) {
 		send_data_req.app_id = data->client.app_id;
-		send_data_req.req_ptr = (uint32_t)(__qseecom_uvirt_to_kphys(
-					data, (uintptr_t)req->cmd_req_buf));
+
+		if (!is_phys_adr) {
+			send_data_req.req_ptr =
+				(uint32_t)(__qseecom_uvirt_to_kphys
+				(data, (uintptr_t)req->cmd_req_buf));
+			send_data_req.rsp_ptr =
+				(uint32_t)(__qseecom_uvirt_to_kphys(
+				data, (uintptr_t)req->resp_buf));
+		} else {
+			send_data_req.req_ptr = (uintptr_t)req->cmd_req_buf;
+			send_data_req.rsp_ptr = (uintptr_t)req->resp_buf;
+		}
+
 		send_data_req.req_len = req->cmd_req_len;
 		send_data_req.rsp_ptr = (uint32_t)(__qseecom_uvirt_to_kphys(
 					data, (uintptr_t)req->resp_buf));
@@ -3727,7 +3739,7 @@ static int qseecom_send_cmd(struct qseecom_dev_handle *data, void __user *argp)
 	if (__validate_send_cmd_inputs(data, &req))
 		return -EINVAL;
 
-	ret = __qseecom_send_cmd(data, &req);
+	ret = __qseecom_send_cmd(data, &req, false);
 
 	if (ret)
 		return ret;
@@ -4249,7 +4261,7 @@ static int __qseecom_send_modfd_cmd(struct qseecom_dev_handle *data,
 		ret = __qseecom_update_cmd_buf(&req, false, data);
 		if (ret)
 			return ret;
-		ret = __qseecom_send_cmd(data, &send_cmd_req);
+		ret = __qseecom_send_cmd(data, &send_cmd_req, true);
 		if (ret)
 			return ret;
 		ret = __qseecom_update_cmd_buf(&req, true, data);
@@ -4259,7 +4271,7 @@ static int __qseecom_send_modfd_cmd(struct qseecom_dev_handle *data,
 		ret = __qseecom_update_cmd_buf_64(&req, false, data);
 		if (ret)
 			return ret;
-		ret = __qseecom_send_cmd(data, &send_cmd_req);
+		ret = __qseecom_send_cmd(data, &send_cmd_req, true);
 		if (ret)
 			return ret;
 		ret = __qseecom_update_cmd_buf_64(&req, true, data);
@@ -5136,7 +5148,7 @@ int qseecom_send_command(struct qseecom_handle *handle, void *send_buf,
 
 	dmac_flush_range(req.cmd_req_buf, req.cmd_req_buf + req.cmd_req_len);
 
-	ret = __qseecom_send_cmd(data, &req);
+	ret = __qseecom_send_cmd(data, &req, false);
 
 	dmac_flush_range(req.resp_buf, req.resp_buf + req.resp_len);
 

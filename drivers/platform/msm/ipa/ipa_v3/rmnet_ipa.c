@@ -502,8 +502,8 @@ static void ipa3_copy_qmi_flt_rule_ex(
 	 */
 	flt_spec_ptr = (struct ipa_filter_spec_ex_type_v01 *) flt_spec_ptr_void;
 
-	q6_ul_flt_rule_ptr->ip = flt_spec_ptr->ip_type;
-	q6_ul_flt_rule_ptr->action = flt_spec_ptr->filter_action;
+	q6_ul_flt_rule_ptr->ip = (enum ipa_ip_type)flt_spec_ptr->ip_type;
+	q6_ul_flt_rule_ptr->action = (enum ipa_flt_action)flt_spec_ptr->filter_action;
 	if (flt_spec_ptr->is_routing_table_index_valid == true)
 		q6_ul_flt_rule_ptr->rt_tbl_idx =
 		flt_spec_ptr->route_table_index;
@@ -1444,8 +1444,6 @@ static void apps_ipa_tx_complete_notify(void *priv,
  *
  * IPA will pass a packet to the Linux network stack with skb->data
  */
-#define RX_STAT_LOG_INTERVAL (1 * 1000 * 1000 * 1000)
-static u64 last_clock;
 static void apps_ipa_packet_receive_notify(void *priv,
 		enum ipa_dp_evt_type evt,
 		unsigned long data)
@@ -1454,17 +1452,8 @@ static void apps_ipa_packet_receive_notify(void *priv,
 
 	if (evt == IPA_RECEIVE) {
 		struct sk_buff *skb = (struct sk_buff *)data;
-		struct sk_buff *frag_skb = skb_shinfo(skb)->frag_list;
 		int result;
 		unsigned int packet_len = skb->len;
-		unsigned int pkts = 1;
-		u64 cur_clock;
-
-		while (frag_skb) {
-			pkts++;
-			packet_len += frag_skb->len;
-			frag_skb = skb_shinfo(frag_skb)->frag_list;
-		}
 
 		IPAWANDBG_LOW("Rx packet was received");
 		skb->dev = IPA_NETDEV();
@@ -1490,15 +1479,8 @@ static void apps_ipa_packet_receive_notify(void *priv,
 							   __func__, __LINE__);
 			dev->stats.rx_dropped++;
 		}
-		dev->stats.rx_packets += pkts;
+		dev->stats.rx_packets++;
 		dev->stats.rx_bytes += packet_len;
-
-		cur_clock = sched_clock();
-		if (cur_clock - last_clock > RX_STAT_LOG_INTERVAL) {
-			last_clock = cur_clock;
-			IPAWANDBG("IPA rx packets = %llu, rx bytes = %llu\n",
-				  dev->stats.rx_packets, dev->stats.rx_bytes);
-		}
 	} else {
 		IPAWANERR("Invalid evt %d received in wan_ipa_receive\n", evt);
 	}
