@@ -23,12 +23,6 @@
 #include <linux/badblocks.h>
 #include <linux/ologk.h>
 
-#ifdef CONFIG_BLOCK_SUPPORT_STLOG
-#include <linux/fslog.h>
-#else
-#define ST_LOG(fmt, ...)
-#endif
-
 #include "blk.h"
 
 static DEFINE_MUTEX(block_class_lock);
@@ -576,13 +570,7 @@ static void register_disk(struct device *parent, struct gendisk *disk)
 	struct device *ddev = disk_to_dev(disk);
 	struct block_device *bdev;
 	struct disk_part_iter piter;
-	struct hd_struct *part;
 	int err;
-
-#ifdef CONFIG_BLOCK_SUPPORT_STLOG
-	int major = disk->major;
-	int first_minor = disk->first_minor;
-#endif
 
 	ddev->parent = parent;
 
@@ -634,15 +622,9 @@ exit:
 	/* announce disk after possible partitions are created */
 	dev_set_uevent_suppress(ddev, 0);
 	kobject_uevent(&ddev->kobj, KOBJ_ADD);
-	ST_LOG("<%s> KOBJ_ADD %d:%d", __func__, major, first_minor);
 
 	/* announce possible partitions */
 	disk_part_iter_init(&piter, disk, 0);
-	while ((part = disk_part_iter_next(&piter))) {
-		kobject_uevent(&part_to_dev(part)->kobj, KOBJ_ADD);
-		ST_LOG("<%s> KOBJ_ADD %d:%d", __func__, major,
-					first_minor + part->partno);
-	}
 	disk_part_iter_exit(&piter);
 }
 
@@ -718,10 +700,6 @@ void del_gendisk(struct gendisk *disk)
 	struct disk_part_iter piter;
 	struct hd_struct *part;
 
-#ifdef CONFIG_BLOCK_SUPPORT_STLOG
-	struct device *dev;
-#endif
-
 	blk_integrity_del(disk);
 	disk_del_events(disk);
 
@@ -761,11 +739,6 @@ void del_gendisk(struct gendisk *disk)
 	if (!sysfs_deprecated)
 		sysfs_remove_link(block_depr, dev_name(disk_to_dev(disk)));
 	pm_runtime_set_memalloc_noio(disk_to_dev(disk), false);
-#ifdef CONFIG_BLOCK_SUPPORT_STLOG
-	dev = disk_to_dev(disk);
-	ST_LOG("<%s> KOBJ_REMOVE %d:%d %s", __func__,
-		MAJOR(dev->devt), MINOR(dev->devt), dev->kobj.name);
-#endif
 	device_del(disk_to_dev(disk));
 }
 EXPORT_SYMBOL(del_gendisk);

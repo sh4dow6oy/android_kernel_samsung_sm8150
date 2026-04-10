@@ -29,12 +29,6 @@
 #include "sd.h"
 #include "sd_ops.h"
 
-#ifdef CONFIG_MMC_SUPPORT_STLOG
-#include <linux/fslog.h>
-#else
-#define ST_LOG(fmt, ...)
-#endif
-
 #define UHS_SDR104_MIN_DTR	(100 * 1000 * 1000)
 #define UHS_DDR50_MIN_DTR	(50 * 1000 * 1000)
 #define UHS_SDR50_MIN_DTR	(50 * 1000 * 1000)
@@ -1558,8 +1552,6 @@ err:
 	mmc_detach_bus(host);
 
 	pr_err("%s: error %d whilst initialising SD card\n",
-		mmc_hostname(host), err);
-	ST_LOG("%s: error %d whilst initialising SD card\n",
 		mmc_hostname(host), err);
 
 	return err;
