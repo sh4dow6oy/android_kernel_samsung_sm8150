@@ -220,47 +220,6 @@ void hex_key_dump(const char* tag, uint8_t *data, size_t data_len)
 }
 #endif
 
-#ifdef CONFIG_SDP_KEY_DUMP
-void key_dump(unsigned char *buf, int len)
-{
-	int i;
-
-	printk("len=%d: ", len);
-	for (i = 0; i < len; ++i) {
-		if ((i%16) == 0)
-			printk("\n");
-		printk("%02X ", (unsigned char)buf[i]);
-	}
-	printk("\n");
-}
-
-static void kek_dump(int engine_id, int kek_type, const char *kek_name)
-{
-	kek_t *kek;
-	int ret;
-
-	kek = get_kek(engine_id, kek_type, &ret);
-	if (kek) {
-		printk("dek: %s: ", kek_name);
-		key_dump(kek->buf, kek->len);
-		put_kek(kek);
-	} else {
-		printk("dek: %s: empty\n", kek_name);
-	}
-}
-
-static void dump_all_keys(int engine_id)
-{
-	kek_dump(engine_id, KEK_TYPE_SYM, "KEK_TYPE_SYM");
-	kek_dump(engine_id, KEK_TYPE_RSA_PUB, "KEK_TYPE_RSA_PUB");
-	kek_dump(engine_id, KEK_TYPE_RSA_PRIV, "KEK_TYPE_RSA_PRIV");
-	kek_dump(engine_id, KEK_TYPE_DH_PUB, "KEK_TYPE_DH_PUB");
-	kek_dump(engine_id, KEK_TYPE_DH_PRIV, "KEK_TYPE_DH_PRIV");
-	kek_dump(engine_id, KEK_TYPE_ECDH256_PUB, "KEK_TYPE_ECDH256_PUB");
-	kek_dump(engine_id, KEK_TYPE_ECDH256_PRIV, "KEK_TYPE_ECDH256_PRIV");
-}
-#endif
-
 int dek_is_locked(int engine_id)
 {
 	if (is_kek(engine_id, KEK_TYPE_SYM))
@@ -278,14 +237,6 @@ int dek_generate_dek(int engine_id, dek_t *newDek)
 		zero_out((char *)newDek, sizeof(dek_t));
 		return -EFAULT;
 	}
-#ifdef CONFIG_SDP_KEY_DUMP
-	else {
-		if (get_sdp_sysfs_key_dump()) {
-			DEK_LOGD("DEK: ");
-			key_dump(newDek->buf, newDek->len);
-		}
-	}
-#endif
 
 	return 0;
 }
@@ -353,13 +304,6 @@ static int dek_encrypt_dek(int engine_id, dek_t *plainDek, dek_t *encDek)
 {
 	int ret = 0;
 	kek_t *kek;
-
-#ifdef CONFIG_SDP_KEY_DUMP
-	if (get_sdp_sysfs_key_dump()) {
-		DEK_LOGD("plainDek from user: ");
-		key_dump(plainDek->buf, plainDek->len);
-	}
-#endif
 
 	kek = get_kek(engine_id, KEK_TYPE_SYM, &ret);
 	if (kek) {
@@ -442,14 +386,6 @@ static int dek_encrypt_dek(int engine_id, dek_t *plainDek, dek_t *encDek)
 		zero_out((char *)encDek, sizeof(dek_t));
 		return -EFAULT;
 	}
-#ifdef CONFIG_SDP_KEY_DUMP
-	else {
-		if (get_sdp_sysfs_key_dump()) {
-			DEK_LOGD("encDek to user: ");
-			key_dump(encDek->buf, encDek->len);
-		}
-	}
-#endif
 
 	return 0;
 }
@@ -522,12 +458,6 @@ static int dek_decrypt_dek(int engine_id, dek_t *encDek, dek_t *plainDek)
 	kek_t *kek = NULL;
 	int ret = 0;
 
-#ifdef CONFIG_SDP_KEY_DUMP
-	if (get_sdp_sysfs_key_dump()) {
-		DEK_LOGD("encDek from user: ");
-		key_dump(encDek->buf, encDek->len);
-	}
-#endif
 	switch (dek_type) {
 	case DEK_TYPE_AES_ENC:
 	{
@@ -664,12 +594,6 @@ static int dek_on_boot(dek_arg_on_boot *evt)
 		add_kek(engine_id, &evt->SDPK_Rpub);
 		add_kek(engine_id, &evt->SDPK_Dpub);
 		add_kek(engine_id, &evt->SDPK_EDpub);
-
-#ifdef CONFIG_SDP_KEY_DUMP
-		if (get_sdp_sysfs_key_dump()) {
-			dump_all_keys(engine_id);
-		}
-#endif
 	}
 
 	return ret;
@@ -695,12 +619,6 @@ static int dek_on_device_locked(dek_arg_on_device_locked *evt)
 	fscrypt_sdp_cache_drop_inode_mappings(engine_id);
 #endif
 
-#ifdef CONFIG_SDP_KEY_DUMP
-	if (get_sdp_sysfs_key_dump()) {
-		dump_all_keys(engine_id);
-	}
-#endif
-
 	return 0;
 }
 
@@ -724,12 +642,6 @@ static int dek_on_device_unlocked(dek_arg_on_device_unlocked *evt)
 	add_kek(engine_id, &evt->SDPK_Rpri);
 	add_kek(engine_id, &evt->SDPK_Dpri);
 	add_kek(engine_id, &evt->SDPK_EDpri);
-
-#ifdef CONFIG_SDP_KEY_DUMP
-	if (get_sdp_sysfs_key_dump()) {
-		dump_all_keys(engine_id);
-	}
-#endif
 
 	return 0;
 }
@@ -760,12 +672,6 @@ static int dek_on_user_added(dek_arg_on_user_added *evt)
 	add_kek(engine_id, &evt->SDPK_Rpub);
 	add_kek(engine_id, &evt->SDPK_Dpub);
 	add_kek(engine_id, &evt->SDPK_EDpub);
-
-#ifdef CONFIG_SDP_KEY_DUMP
-	if (get_sdp_sysfs_key_dump()) {
-		dump_all_keys(engine_id);
-	}
-#endif
 
 	return ret;
 }

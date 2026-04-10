@@ -82,48 +82,12 @@ int get_sdp_sysfs_asym_alg(void) {
 	return g_asym_alg;
 }
 
-#ifdef CONFIG_SDP_KEY_DUMP
-static int kek_dump = 0;
-
-static ssize_t dek_show_key_dump(struct device *dev,
-        struct device_attribute *attr, char *buf) {
-    return sprintf(buf, "%d\n", kek_dump);
-}
-
-static ssize_t dek_set_key_dump(struct device *dev,
-                 struct device_attribute *attr,
-                 const char *buf, size_t count) {
-    int flag = simple_strtoul(buf, NULL, 10);
-
-    kek_dump = flag;
-
-    return strlen(buf);
-}
-
-static DEVICE_ATTR(key_dump, 0664, dek_show_key_dump, dek_set_key_dump);
-
-int dek_create_sysfs_key_dump(struct device *d) {
-    int error;
-
-    if((error = device_create_file(d, &dev_attr_key_dump)))
-        return error;
-
-    return 0;
-}
-
-int get_sdp_sysfs_key_dump(void) {
-    return kek_dump;
-}
-#else
 int dek_create_sysfs_key_dump(struct device *d) {
     printk("key_dump feature not available");
-
     return 0;
 }
 
 int get_sdp_sysfs_key_dump(void) {
     printk("key_dump feature not available");
-
     return 0;
 }
-#endif

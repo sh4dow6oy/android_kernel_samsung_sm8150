@@ -138,43 +138,6 @@ int fscrypt_dd_encrypted_inode(const struct inode *inode)
 }
 EXPORT_SYMBOL(fscrypt_dd_encrypted_inode);
 
-#ifdef CONFIG_SDP_KEY_DUMP
-int fscrypt_dd_is_traced_inode(const struct inode *inode)
-{
-	struct fscrypt_info *ci = NULL;
-
-	if (!inode)
-		return 0;
-
-	ci = inode->i_crypt_info;
-	if (!S_ISREG(inode->i_mode))
-		return 0;
-
-	if (ci && ci->ci_dd_info) {
-		if (dd_policy_trace_file(ci->ci_dd_info->policy.flags))
-			return 1;
-	}
-
-	return 0;
-}
-EXPORT_SYMBOL(fscrypt_dd_is_traced_inode);
-
-void fscrypt_dd_trace_inode(const struct inode *inode)
-{
-	struct fscrypt_info *ci = NULL;
-
-	if (!inode)
-		return;
-
-	ci = inode->i_crypt_info;
-	if (ci && ci->ci_dd_info) {
-		dd_info("update dd trace policy ino:%ld\n", inode->i_ino);
-		ci->ci_dd_info->policy.flags |= DD_POLICY_TRACE_FILE;
-	}
-}
-EXPORT_SYMBOL(fscrypt_dd_trace_inode);
-#endif
-
 struct inode *fscrypt_bio_get_inode(const struct bio *bio)
 {
 	if (!bio)

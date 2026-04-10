@@ -190,9 +190,6 @@ static inline void dd_dump_benchmark(struct dd_benchmark_result *bm_result) {
 #else
 int dd_add_master_key(int userid, void *key, int len);
 void dd_evict_master_key(int userid);
-#ifdef CONFIG_SDP_KEY_DUMP
-int dd_dump_key(int userid, int fd);
-#endif
 #endif
 int get_dd_master_key(int userid, void *key);
 
