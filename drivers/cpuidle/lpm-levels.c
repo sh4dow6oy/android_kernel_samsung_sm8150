@@ -1870,7 +1870,6 @@ static int lpm_suspend_prepare(void)
 		sec_gpio_debug_print();
 	}
 #endif
-
 	lpm_stats_suspend_enter();
 
 	return 0;

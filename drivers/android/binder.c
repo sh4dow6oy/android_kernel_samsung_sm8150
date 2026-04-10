@@ -413,7 +413,6 @@ struct binder_ref {
 	/*   desc + proc => ref (transaction, inc/dec ref) */
 	/*   node => refs + procs (proc exit) */
 	struct binder_ref_data data;
-	unsigned int dummy;
 	struct rb_node rb_node_desc;
 	struct rb_node rb_node_node;
 	struct hlist_node node_entry;
@@ -1957,7 +1956,6 @@ static int binder_inc_ref_for_node(struct binder_proc *proc,
 		if (!new_ref)
 			return -ENOMEM;
 		binder_proc_lock(proc);
-		new_ref->dummy = 0xdeaddead;
 		ref = binder_get_ref_for_node_olocked(proc, node, new_ref);
 	}
 	ret = binder_inc_ref_olocked(ref, strong, target_list);
@@ -3011,9 +3009,9 @@ static struct binder_node *binder_get_node_refs_for_txn(
 // 3) Java layer uses 2 bytes char. And only the first byte has the data. (p+=2)
 // 4) Parcel::writeInterfaceToken() in frameworks/native/libs/binder/Parcel.cpp
 static void freecess_async_binder_report(struct binder_proc *proc,
-						struct binder_proc *target_proc,
-						struct binder_transaction_data *tr,
-						struct binder_transaction *t)
+					struct binder_proc *target_proc,
+					struct binder_transaction_data *tr,
+					struct binder_transaction *t)
 {
 	char buf_user[INTERFACETOKEN_BUFF_SIZE] = {0};
 	char buf[INTERFACETOKEN_BUFF_SIZE] = {0};
@@ -3330,9 +3328,26 @@ static void binder_transaction(struct binder_proc *proc,
 	if (target_node && target_node->txn_security_ctx) {
 		u32 secid;
 		size_t added_size;
+		int retries = 0;
+		int max_retries = 100;
 
+retry_lowmem:
 		security_cred_getsecid(proc->cred, &secid);
 		ret = security_secid_to_secctx(secid, &secctx, &secctx_sz);
+		if (ret == -ENOMEM && retries++ < max_retries) {
+			/*
+			 * security_secid_to_secctx() can fail
+			 * because of a GFP_ATOMIC allocation in
+			 * which case -ENOMEM is returned. This needs
+			 * to be retried, but there is currently no
+			 * way to tell userspace to retry so we do
+			 * it here. Sleep briefly to allow the low
+			 * memory condition to resolve.
+			 */
+			udelay(100);
+			goto retry_lowmem;
+		}
+
 		if (ret) {
 			return_error = BR_FAILED_REPLY;
 			return_error_param = ret;
@@ -3386,7 +3401,6 @@ static void binder_transaction(struct binder_proc *proc,
 		security_release_secctx(secctx, secctx_sz);
 		secctx = NULL;
 	}
-	
 	t->buffer->debug_id = t->debug_id;
 	t->buffer->transaction = t;
 	t->buffer->target_node = target_node;
@@ -3436,9 +3450,11 @@ static void binder_transaction(struct binder_proc *proc,
 		return_error_line = __LINE__;
 		goto err_bad_offset;
 	}
+
 #ifdef CONFIG_SAMSUNG_FREECESS
-	freecess_async_binder_report(proc, target_proc, tr, t); 
+	freecess_async_binder_report(proc, target_proc, tr, t);
 #endif
+
 	off_start_offset = ALIGN(tr->data_size, sizeof(void *));
 	buffer_offset = off_start_offset;
 	off_end_offset = off_start_offset + tr->offsets_size;
@@ -4582,8 +4598,9 @@ retry:
 		if (t_from) {
 			struct task_struct *sender = t_from->proc->tsk;
 
-			trd->sender_pid = task_tgid_nr_ns(sender,
-							task_active_pid_ns(current));
+			trd->sender_pid =
+				task_tgid_nr_ns(sender,
+						task_active_pid_ns(current));
 		} else {
 			trd->sender_pid = 0;
 		}
@@ -4626,8 +4643,8 @@ retry:
 			     "%d:%d %s %d %d:%d, cmd %d size %zd-%zd ptr %016llx-%016llx\n",
 			     proc->pid, thread->pid,
 			     (cmd == BR_TRANSACTION) ? "BR_TRANSACTION" :
-			     (cmd == BR_TRANSACTION_SEC_CTX) ?
-					"BR_TRANSACTION_SEC_CTX" : "BR_REPLY",	 
+				(cmd == BR_TRANSACTION_SEC_CTX) ?
+				     "BR_TRANSACTION_SEC_CTX" : "BR_REPLY",
 			     t->debug_id, t_from ? t_from->proc->pid : 0,
 			     t_from ? t_from->pid : 0, cmd,
 			     t->buffer->data_size, t->buffer->offsets_size,
@@ -4994,7 +5011,7 @@ out:
 }
 
 static int binder_ioctl_set_ctx_mgr(struct file *filp,
-					struct flat_binder_object *fbo)
+				    struct flat_binder_object *fbo)
 {
 	int ret = 0;
 	struct binder_proc *proc = filp->private_data;
@@ -5157,7 +5174,7 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (ret)
 			goto err;
 		break;
-	}	
+	}
 	case BINDER_SET_CONTEXT_MGR:
 		ret = binder_ioctl_set_ctx_mgr(filp, NULL);
 		if (ret)
@@ -5222,7 +5239,7 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	}
 	case BINDER_SET_SYSTEM_SERVER_PID: {
 		if (copy_from_user(&system_server_pid, ubuf,
-				   sizeof(system_server_pid))) {
+					sizeof(system_server_pid))) {
 			ret = -EINVAL;
 			goto err;
 		}

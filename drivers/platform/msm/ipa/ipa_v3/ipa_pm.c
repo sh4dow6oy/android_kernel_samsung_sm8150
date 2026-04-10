@@ -491,14 +491,6 @@ static void delayed_deferred_deactivate_work_func(struct work_struct *work)
 		client->state = IPA_PM_ACTIVATED_PENDING_DEACTIVATION;
 		goto bail;
 	case IPA_PM_ACTIVATED_PENDING_DEACTIVATION:
-		/* sustain active state for icmp low latency */
-		delay = IPA_PM_DEFERRED_TIMEOUT;
-		if (local_clock() - icmp_last_sent < 2 * 1000 * 1000 * 1000) {
-			queue_delayed_work(ipa_pm_ctx->wq,
-					   &client->deactivate_work,
-					   msecs_to_jiffies(delay));
-			goto bail;
-		}
 		client->state = IPA_PM_DEACTIVATED;
 		IPA_PM_DBG_STATE(client->hdl, client->name, client->state);
 		spin_unlock_irqrestore(&client->state_lock, flags);

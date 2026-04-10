@@ -166,9 +166,11 @@ static void modem_crash_shutdown(const struct subsys_desc *subsys)
 
 	drv->crash_shutdown = true;
 	if (!subsys_get_crash_status(drv->subsys) &&
-		subsys->force_stop_bit) {
+		subsys->state) {
 		qcom_smem_state_update_bits(subsys->state,
-				BIT(subsys->force_stop_bit), 1);
+				BIT(subsys->force_stop_bit),
+				BIT(subsys->force_stop_bit));
+		drv->ignore_errors = true;
 		msleep(STOP_ACK_TIMEOUT_MS);
 	}
 }

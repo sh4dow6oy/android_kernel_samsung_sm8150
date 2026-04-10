@@ -16,4 +16,3 @@ Example:
 		compatible = "qcom,aop-ddr-msgs";
 		mboxes = <&qmp_aop 0>;
 	};
-

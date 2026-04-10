@@ -677,7 +677,6 @@ static void binder_free_buf_locked(struct binder_alloc *alloc,
 
 	rb_erase(&buffer->rb_node, &alloc->allocated_buffers);
 	buffer->free = 1;
-	buffer->dummy = 0xdeadbeef;
 	if (!list_is_last(&buffer->entry, &alloc->buffers)) {
 		struct binder_buffer *next = binder_buffer_next(buffer);
 
