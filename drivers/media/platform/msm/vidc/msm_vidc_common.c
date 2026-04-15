@@ -3415,8 +3415,10 @@ static int msm_vidc_load_resources(int flipped_state,
 		dprintk(VIDC_ERR, "HW is overloaded, needed: %d max: %d\n",
 			num_mbs_per_sec, max_load_adj);
 		msm_vidc_print_running_insts(core);
+//#if 0 /* Samsung skips the overloaded error return  */
 		msm_comm_kill_session(inst);
 		return -EBUSY;
+//#endif
 	}
 
 	hdev = core->device;
@@ -4674,6 +4676,18 @@ int msm_comm_try_get_bufreqs(struct msm_vidc_inst *inst)
 				req.buffer_count_min, req.buffer_size);
 		}
 	}
+
+	/* Buffer size will be double when the resolution is
+	 * 360p < resolution <= 720p
+	 */
+	for (i = 0; i < HAL_BUFFER_MAX; i++) {
+		if ((inst->buff_req.buffer[i].buffer_type == HAL_BUFFER_OUTPUT) &&
+				(inst->buff_req.buffer[i].buffer_size >= 175000 &&
+				inst->buff_req.buffer[i].buffer_size <= 900000)) {
+			inst->buff_req.buffer[i].buffer_size *= 2;
+		}
+	}
+
 
 	dprintk(VIDC_DBG, "Buffer requirements driver adjusted:\n");
 	dprintk(VIDC_DBG, "%15s %8s %8s %8s %8s\n",
@@ -6763,8 +6777,7 @@ put_ref:
 	while (planes)
 		msm_smem_put_dma_buf((struct dma_buf *)dma_planes[--planes]);
 
-	return rc ? ((rc == -EEXIST && !inst->batch.enable) ?
-			ERR_PTR(rc) : mbuf) : mbuf;
+	return rc ? ERR_PTR(rc) : mbuf;
 }
 
 void msm_comm_put_vidc_buffer(struct msm_vidc_inst *inst,

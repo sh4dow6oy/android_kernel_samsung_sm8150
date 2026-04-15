@@ -979,6 +979,13 @@ static int msm_pcm_capture_copy(struct snd_pcm_substream *substream,
 			xfer = size;
 		offset = prtd->in_frame_info[idx].offset;
 		pr_debug("Offset value = %d\n", offset);
+		if (offset >= size) {
+			pr_err("%s: Invalid dsp buf offset\n", __func__);
+			ret = -EFAULT;
+			q6asm_cpu_buf_release(OUT, prtd->audio_client);
+			goto fail;
+		}
+
 		if (copy_to_user(buf, bufptr+offset, xfer)) {
 			pr_err("Failed to copy buf to user\n");
 			ret = -EFAULT;
@@ -1459,7 +1466,8 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 {
 	struct snd_pcm_volume *vol = snd_kcontrol_chip(kcontrol);
 	struct msm_plat_data *pdata = NULL;
-	struct snd_pcm_substream *substream = NULL;
+	struct snd_pcm_substream *substream =
+		vol->pcm->streams[vol->stream].substream;
 	struct snd_soc_pcm_runtime *soc_prtd = NULL;
 	struct msm_audio *prtd;
 
@@ -1468,14 +1476,6 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 		pr_err("%s: vol is NULL\n", __func__);
 		return -ENODEV;
 	}
-
-	if (!vol->pcm) {
-		pr_err("%s: vol->pcm is NULL\n", __func__);
-		return -ENODEV;
-	}
-
-	substream = vol->pcm->streams[vol->stream].substream;
-
 	if (!substream) {
 		pr_err("%s substream not found\n", __func__);
 		return -ENODEV;
@@ -1507,24 +1507,14 @@ static int msm_pcm_volume_ctl_put(struct snd_kcontrol *kcontrol,
 {
 	int rc = 0;
 	struct snd_pcm_volume *vol = snd_kcontrol_chip(kcontrol);
-	struct snd_pcm_substream *substream = NULL;
-	struct snd_soc_pcm_runtime *soc_prtd = NULL;
 	struct msm_plat_data *pdata = NULL;
+	struct snd_pcm_substream *substream =
+		vol->pcm->streams[vol->stream].substream;
+	struct snd_soc_pcm_runtime *soc_prtd = NULL;
 	struct msm_audio *prtd;
 	int volume = ucontrol->value.integer.value[0];
 
 	pr_debug("%s: volume : 0x%x\n", __func__, volume);
-	if (!vol) {
-		pr_err("%s: vol is NULL\n", __func__);
-		return -ENODEV;
-	}
-
-	if (!vol->pcm) {
-		pr_err("%s: vol->pcm is NULL\n", __func__);
-		return -ENODEV;
-	}
-
-	substream = vol->pcm->streams[vol->stream].substream;
 	if (!substream) {
 		pr_err("%s: substream not found\n", __func__);
 		return -ENODEV;

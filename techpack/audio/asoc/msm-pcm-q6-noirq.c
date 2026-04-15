@@ -42,6 +42,8 @@
 #include "msm-pcm-q6-v2.h"
 #include "msm-pcm-routing-v2.h"
 
+#include <linux/msm_pcie.h>
+
 #define PCM_MASTER_VOL_MAX_STEPS	0x2000
 static const DECLARE_TLV_DB_LINEAR(msm_pcm_vol_gain, 0,
 			PCM_MASTER_VOL_MAX_STEPS);
@@ -258,6 +260,10 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 	prtd->dsp_cnt = 0;
 	prtd->set_channel_map = false;
 	runtime->private_data = prtd;
+
+	pr_info("%s: sec_pcie_l1ss_disable()\n", __func__);
+	sec_pcie_l1ss_disable(L1SS_AUDIO);
+
 	return 0;
 
 fail_cmd:
@@ -609,7 +615,11 @@ static int msm_pcm_prepare(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct msm_audio *prtd = runtime->private_data;
 	struct asm_softvolume_params softvol = {
+#ifdef CONFIG_SND_SOC_SAMSUNG_AUDIO
+		.period = SOFT_VOLUME_MMAP_PERIOD,
+#else
 		.period = SOFT_VOLUME_PERIOD,
+#endif
 		.step = SOFT_VOLUME_STEP,
 		.rampingcurve = SOFT_VOLUME_CURVE_LINEAR,
 	};
@@ -688,6 +698,9 @@ static int msm_pcm_close(struct snd_pcm_substream *substream)
 	runtime->private_data = NULL;
 	mutex_unlock(&pdata->lock);
 
+	pr_info("%s: sec_pcie_l1ss_enable()\n", __func__);
+	sec_pcie_l1ss_enable(L1SS_AUDIO);
+
 	return 0;
 }
 
@@ -712,24 +725,12 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 {
 	struct snd_pcm_volume *vol = snd_kcontrol_chip(kcontrol);
 	struct msm_plat_data *pdata = NULL;
-	struct snd_pcm_substream *substream = NULL;
+	struct snd_pcm_substream *substream =
+		vol->pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream;
 	struct snd_soc_pcm_runtime *soc_prtd = NULL;
 	struct msm_audio *prtd;
 
 	pr_debug("%s\n", __func__);
-
-	if (!vol) {
-		pr_err("%s: vol is NULL\n", __func__);
-		return -ENODEV;
-	}
-
-	if (!vol->pcm) {
-		pr_err("%s: vol->pcm is NULL\n", __func__);
-		return -ENODEV;
-	}
-
-	substream = vol->pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream;
-
 	if (!substream) {
 		pr_err("%s substream not found\n", __func__);
 		return -ENODEV;

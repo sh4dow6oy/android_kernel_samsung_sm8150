@@ -669,7 +669,7 @@ int mhi_queue_buf(struct mhi_device *mhi_dev,
 	 */
 	if (unlikely(MHI_PM_IN_ERROR_STATE(mhi_cntrl->pm_state))) {
 		MHI_VERB("MHI is not in active state, pm_state:%s\n",
-			 to_mhi_pm_state_str(mhi_cntrl->pm_state));
+				to_mhi_pm_state_str(mhi_cntrl->pm_state));
 
 		return -EIO;
 	}
@@ -873,6 +873,7 @@ void mhi_create_devices(struct mhi_controller *mhi_cntrl)
 
 		/* add if there is a matching DT node */
 		mhi_assign_of_node(mhi_cntrl, mhi_dev);
+		
 
 		/*
 		 * if set, these device should get a early notification during
@@ -1358,13 +1359,6 @@ int mhi_process_tsync_ev_ring(struct mhi_controller *mhi_cntrl,
 	int ret = 0;
 
 	spin_lock_bh(&mhi_event->lock);
-	if (!is_valid_ring_ptr(ev_ring, er_ctxt->rp)) {
-		MHI_ERR(
-			"Event ring rp points outside of the event ring or unalign rp %llx\n",
-			er_ctxt->rp);
-		spin_unlock_bh(&mhi_event->lock);
-		return 0;
-	}
 	dev_rp = mhi_to_virtual(ev_ring, er_ctxt->rp);
 	if (ev_ring->rp == dev_rp) {
 		spin_unlock_bh(&mhi_event->lock);
@@ -1457,15 +1451,8 @@ int mhi_process_bw_scale_ev_ring(struct mhi_controller *mhi_cntrl,
 	int result, ret = 0;
 
 	spin_lock_bh(&mhi_event->lock);
-	if (!is_valid_ring_ptr(ev_ring, er_ctxt->rp)) {
-		MHI_ERR(
-			"Event ring rp points outside of the event ring or unalign rp %llx\n",
-			er_ctxt->rp);
-		spin_unlock_bh(&mhi_event->lock);
-		return 0;
-	}
-
 	dev_rp = mhi_to_virtual(ev_ring, er_ctxt->rp);
+
 	if (ev_ring->rp == dev_rp) {
 		spin_unlock_bh(&mhi_event->lock);
 		goto exit_bw_scale_process;
@@ -1522,7 +1509,6 @@ int mhi_process_bw_scale_ev_ring(struct mhi_controller *mhi_cntrl,
 	read_unlock_bh(&mhi_cntrl->pm_lock);
 
 	mhi_device_put(mhi_cntrl->mhi_dev, MHI_VOTE_DEVICE | MHI_VOTE_BUS);
-
 	mutex_unlock(&mhi_cntrl->pm_mutex);
 
 exit_bw_scale_process:

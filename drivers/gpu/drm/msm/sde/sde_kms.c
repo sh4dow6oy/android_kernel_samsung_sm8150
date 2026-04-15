@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2020, The Linux Foundation. All rights reserved.
  * Copyright (C) 2013 Red Hat
  * Author: Rob Clark <robdclark@gmail.com>
  *
@@ -52,6 +52,10 @@
 
 #define CREATE_TRACE_POINTS
 #include "sde_trace.h"
+
+#if defined(CONFIG_DISPLAY_SAMSUNG) || defined(CONFIG_DISPLAY_SAMSUNG_LEGO)
+#include <linux/sec_debug.h>
+#endif
 
 /* defines for secure channel call */
 #define MEM_PROTECT_SD_CTRL_SWITCH 0x18
@@ -833,13 +837,19 @@ static int _sde_kms_release_splash_buffer(unsigned int mem_addr,
 		return -EINVAL;
 	}
 
+#if (defined(CONFIG_DISPLAY_SAMSUNG) || defined(CONFIG_DISPLAY_SAMSUNG_LEGO))  && defined(CONFIG_SEC_DEBUG)
+	if (sec_debug_is_enabled()) {
+		pr_info("skip to free splash memory\n");
+		return 0;
+	}
+#else
 	/* leave ramdump memory only if base address matches */
 	if (ramdump_base == mem_addr &&
 			ramdump_buffer_size <= splash_buffer_size) {
 		mem_addr +=  ramdump_buffer_size;
 		splash_buffer_size -= ramdump_buffer_size;
 	}
-
+#endif
 	pfn_start = mem_addr >> PAGE_SHIFT;
 	pfn_end = (mem_addr + splash_buffer_size) >> PAGE_SHIFT;
 
@@ -848,8 +858,14 @@ static int _sde_kms_release_splash_buffer(unsigned int mem_addr,
 		SDE_ERROR("continuous splash memory free failed:%d\n", ret);
 		return ret;
 	}
+	free_memsize_reserved(mem_addr, splash_buffer_size);
 	for (pfn_idx = pfn_start; pfn_idx < pfn_end; pfn_idx++)
 		free_reserved_page(pfn_to_page(pfn_idx));
+
+#if defined(CONFIG_DISPLAY_SAMSUNG_LEGO)
+	SDE_INFO("release splash buffer: addr: %x, size: %x, sec_debug: %d\n",
+			mem_addr, splash_buffer_size, sec_debug_is_enabled());
+#endif
 
 	return ret;
 
@@ -1234,7 +1250,7 @@ static void sde_kms_prepare_fence(struct msm_kms *kms,
 {
 	struct drm_crtc *crtc;
 	struct drm_crtc_state *old_crtc_state;
-	int i;
+	int i, rc;
 
 	if (!kms || !old_state || !old_state->dev || !old_state->acquire_ctx) {
 		SDE_ERROR("invalid argument(s)\n");
@@ -1242,6 +1258,15 @@ static void sde_kms_prepare_fence(struct msm_kms *kms,
 	}
 
 	SDE_ATRACE_BEGIN("sde_kms_prepare_fence");
+retry:
+	/* attempt to acquire ww mutex for connection */
+	rc = drm_modeset_lock(&old_state->dev->mode_config.connection_mutex,
+			       old_state->acquire_ctx);
+
+	if (rc == -EDEADLK) {
+		drm_modeset_backoff(old_state->acquire_ctx);
+		goto retry;
+	}
 
 	/* old_state actually contains updated crtc pointers */
 	for_each_crtc_in_state(old_state, crtc, old_crtc_state, i) {
@@ -1349,10 +1374,18 @@ static void _sde_kms_release_displays(struct sde_kms *sde_kms)
 	sde_kms->wb_displays = NULL;
 	sde_kms->wb_display_count = 0;
 
+#if defined(CONFIG_DISPLAY_SAMSUNG_LEGO)
+	sde_kms->dsi_display_count = 0;
+	kfree(sde_kms->dsi_displays);
+	sde_kms->dsi_displays = NULL;
+#else
 	kfree(sde_kms->dsi_displays);
 	sde_kms->dsi_displays = NULL;
 	sde_kms->dsi_display_count = 0;
+#endif
 }
+
+// KR :  No sde_kms_check_status_init ??
 
 /**
  * _sde_kms_setup_displays - create encoders, bridges and connectors
@@ -1795,6 +1828,11 @@ void sde_kms_timeline_status(struct drm_device *dev)
 	mutex_unlock(&dev->mode_config.mutex);
 }
 
+#if defined(CONFIG_DISPLAY_SAMSUNG_LEGO)
+int sde_core_perf_sysfs_init(struct sde_kms *sde_kms);
+int sde_core_perf_sysfs_deinit(struct sde_kms *sde_kms);
+#endif
+
 static int sde_kms_postinit(struct msm_kms *kms)
 {
 	struct sde_kms *sde_kms = to_sde_kms(kms);
@@ -1812,6 +1850,12 @@ static int sde_kms_postinit(struct msm_kms *kms)
 	rc = _sde_debugfs_init(sde_kms);
 	if (rc)
 		SDE_ERROR("sde_debugfs init failed: %d\n", rc);
+
+#if defined(CONFIG_DISPLAY_SAMSUNG_LEGO)
+	rc = sde_core_perf_sysfs_init(sde_kms);
+	if (rc)
+		SDE_ERROR("sde_core_sysfs init failed: %d\n", rc);
+#endif
 
 	drm_for_each_crtc(crtc, dev)
 		sde_crtc_post_init(dev, crtc);
@@ -1864,6 +1908,9 @@ static void _sde_kms_hw_destroy(struct sde_kms *sde_kms,
 	/* safe to call these more than once during shutdown */
 	_sde_debugfs_destroy(sde_kms);
 	_sde_kms_mmu_destroy(sde_kms);
+#if defined(CONFIG_DISPLAY_SAMSUNG_LEGO)
+	sde_core_perf_sysfs_deinit(sde_kms);
+#endif
 
 	if (sde_kms->catalog) {
 		for (i = 0; i < sde_kms->catalog->vbif_count; i++) {
@@ -1994,48 +2041,6 @@ static void sde_kms_destroy(struct msm_kms *kms)
 	kfree(sde_kms);
 }
 
-static int sde_kms_set_crtc_for_conn(struct drm_device *dev,
-		struct drm_encoder *enc, struct drm_atomic_state *state)
-{
-	struct drm_connector *conn = NULL;
-	struct drm_connector *tmp_conn = NULL;
-	struct drm_connector_list_iter conn_iter;
-	struct drm_crtc_state *crtc_state = NULL;
-	struct drm_connector_state *conn_state = NULL;
-	int ret = 0;
-
-	drm_connector_list_iter_begin(dev, &conn_iter);
-	drm_for_each_connector_iter(tmp_conn, &conn_iter) {
-		if (enc == tmp_conn->state->best_encoder) {
-			conn = tmp_conn;
-			break;
-		}
-	}
-	drm_connector_list_iter_end(&conn_iter);
-
-	if (!conn) {
-		SDE_ERROR("error in finding conn for enc:%d\n", DRMID(enc));
-		return -EINVAL;
-	}
-
-	crtc_state = drm_atomic_get_crtc_state(state, enc->crtc);
-	conn_state = drm_atomic_get_connector_state(state, conn);
-	if (IS_ERR(conn_state)) {
-		SDE_ERROR("error %d getting connector %d state\n",
-				ret, DRMID(conn));
-		return -EINVAL;
-	}
-
-	crtc_state->active = true;
-	ret = drm_atomic_set_crtc_for_connector(conn_state, enc->crtc);
-	if (ret)
-		SDE_ERROR("error %d setting the crtc\n", ret);
-
-	_sde_crtc_clear_dim_layers_v1(crtc_state);
-
-	return 0;
-}
-
 static void _sde_kms_plane_force_remove(struct drm_plane *plane,
 			struct drm_atomic_state *state)
 {
@@ -2070,9 +2075,8 @@ static int _sde_kms_remove_fbs(struct sde_kms *sde_kms, struct drm_file *file,
 	struct drm_framebuffer *fb, *tfb;
 	struct list_head fbs;
 	struct drm_plane *plane;
-	struct drm_crtc *crtc = NULL;
-	unsigned int crtc_mask = 0;
 	int ret = 0;
+	u32 plane_mask = 0;
 
 	INIT_LIST_HEAD(&fbs);
 
@@ -2081,11 +2085,9 @@ static int _sde_kms_remove_fbs(struct sde_kms *sde_kms, struct drm_file *file,
 			list_move_tail(&fb->filp_head, &fbs);
 
 			drm_for_each_plane(plane, dev) {
-				if (plane->state &&
-					plane->state->fb == fb) {
-					if (plane->state->crtc)
-						crtc_mask |= drm_crtc_mask(
-							plane->state->crtc);
+				if (plane->fb == fb) {
+					plane_mask |=
+						1 << drm_plane_index(plane);
 					 _sde_kms_plane_force_remove(
 								plane, state);
 				}
@@ -2098,22 +2100,11 @@ static int _sde_kms_remove_fbs(struct sde_kms *sde_kms, struct drm_file *file,
 
 	if (list_empty(&fbs)) {
 		SDE_DEBUG("skip commit as no fb(s)\n");
+		drm_atomic_state_put(state);
 		return 0;
 	}
 
-	drm_for_each_crtc(crtc, dev) {
-		if ((crtc_mask & drm_crtc_mask(crtc)) && crtc->state->active) {
-			struct drm_encoder *drm_enc;
-
-			drm_for_each_encoder_mask(drm_enc, crtc->dev,
-					crtc->state->encoder_mask)
-				ret = sde_kms_set_crtc_for_conn(
-					dev, drm_enc, state);
-		}
-	}
-
-	SDE_EVT32(state, crtc_mask);
-	SDE_DEBUG("null commit after removing all the pipes\n");
+	SDE_DEBUG("committing after removing all the pipes\n");
 	ret = drm_atomic_commit(state);
 
 	if (ret) {
@@ -2136,6 +2127,8 @@ static int _sde_kms_remove_fbs(struct sde_kms *sde_kms, struct drm_file *file,
 	}
 
 end:
+	drm_atomic_clean_old_fb(dev, plane_mask, ret);
+
 	return ret;
 }
 
@@ -2741,7 +2734,7 @@ static int sde_kms_get_mixer_count(const struct msm_kms *kms,
 			mode->hdisplay > max_mixer_width) {
 		*num_lm = 2;
 		if ((mode_clock_hz >> 1) > max_mdp_clock_hz) {
-			SDE_DEBUG("[%s] clock %d exceeds max_mdp_clk %d\n",
+			SDE_ERROR("[%s] clock %d exceeds max_mdp_clk %d\n",
 					mode->name, mode_clock_hz,
 					max_mdp_clock_hz);
 			return -EINVAL;
@@ -2758,7 +2751,12 @@ static void _sde_kms_null_commit(struct drm_device *dev,
 		struct drm_encoder *enc)
 {
 	struct drm_modeset_acquire_ctx ctx;
+	struct drm_connector *conn = NULL;
+	struct drm_connector *tmp_conn = NULL;
+	struct drm_connector_list_iter conn_iter;
 	struct drm_atomic_state *state = NULL;
+	struct drm_crtc_state *crtc_state = NULL;
+	struct drm_connector_state *conn_state = NULL;
 	int retry_cnt = 0;
 	int ret = 0;
 
@@ -2782,11 +2780,30 @@ retry:
 	}
 
 	state->acquire_ctx = &ctx;
+	drm_connector_list_iter_begin(dev, &conn_iter);
+	drm_for_each_connector_iter(tmp_conn, &conn_iter) {
+		if (enc == tmp_conn->state->best_encoder) {
+			conn = tmp_conn;
+			break;
+		}
+	}
+	drm_connector_list_iter_end(&conn_iter);
 
-	ret = sde_kms_set_crtc_for_conn(dev, enc, state);
-
-	if (ret)
+	if (!conn) {
+		SDE_ERROR("error in finding conn for enc:%d\n", DRMID(enc));
 		goto end;
+	}
+
+	crtc_state = drm_atomic_get_crtc_state(state, enc->crtc);
+	conn_state = drm_atomic_get_connector_state(state, conn);
+	if (IS_ERR(conn_state)) {
+		SDE_ERROR("error %d getting connector %d state\n",
+				ret, DRMID(conn));
+		goto end;
+	}
+
+	crtc_state->active = true;
+	drm_atomic_set_crtc_for_connector(conn_state, enc->crtc);
 
 	drm_atomic_commit(state);
 end:
@@ -2992,8 +3009,10 @@ retry:
 			drm_modeset_backoff(&ctx);
 		}
 
-		if (ret < 0)
+		if (ret < 0) {
 			DRM_ERROR("failed to restore state, %d\n", ret);
+			SDE_DBG_DUMP("all", "dbg_bus", "vbif_dbg_bus", "panic");
+		}
 
 		drm_atomic_state_put(sde_kms->suspend_state);
 		sde_kms->suspend_state = NULL;
@@ -3008,6 +3027,11 @@ end:
 
 	return 0;
 }
+
+#if defined(CONFIG_DISPLAY_SAMSUNG) || defined(CONFIG_DISPLAY_SAMSUNG_LEGO)
+extern int ss_dsi_panel_event_handler(
+		int display_ndx, enum mdss_intf_events event, void *arg);
+#endif
 
 static const struct msm_kms_funcs kms_funcs = {
 	.hw_init         = sde_kms_hw_init,
@@ -3039,6 +3063,10 @@ static const struct msm_kms_funcs kms_funcs = {
 	.postopen = _sde_kms_post_open,
 	.check_for_splash = sde_kms_check_for_splash,
 	.get_mixer_count = sde_kms_get_mixer_count,
+
+#if defined(CONFIG_DISPLAY_SAMSUNG) || defined(CONFIG_DISPLAY_SAMSUNG_LEGO)
+	.ss_callback	= ss_dsi_panel_event_handler,
+#endif
 };
 
 /* the caller api needs to turn on clock before calling it */

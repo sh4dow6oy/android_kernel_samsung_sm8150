@@ -1,6 +1,14 @@
-// SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2013-2018, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #include <linux/init.h>
@@ -611,6 +619,12 @@ static int hpcm_start_vocpcm(char *pcm_id, struct hpcm_drv *prtd,
 		}
 	}
 
+	if (*no_of_tp != no_of_tp_req && *no_of_tp > 2) {
+		pr_err("%s:: Invalid hpcm start request\n", __func__);
+		memset(&prtd->start_cmd, 0, sizeof(struct start_cmd));
+		return -EINVAL;
+	}
+
 	if (prtd->mixer_conf.tx.enable && (get_tappnt_value(pcm_id) == TX)) {
 		if (hpcm_all_dais_are_ready(prtd->mixer_conf.tx.direction,
 					    tp, HPCM_PREPARED)) {
@@ -623,12 +637,6 @@ static int hpcm_start_vocpcm(char *pcm_id, struct hpcm_drv *prtd,
 						prtd->mixer_conf.tx.sample_rate;
 			(*no_of_tp)++;
 		}
-	}
-
-	if (*no_of_tp != no_of_tp_req && *no_of_tp > 2) {
-		pr_err("%s:: Invalid hpcm start request\n", __func__);
-		memset(&prtd->start_cmd, 0, sizeof(struct start_cmd));
-		return -EINVAL;
 	}
 
 	if ((prtd->mixer_conf.tx.enable || prtd->mixer_conf.rx.enable) &&
@@ -661,6 +669,11 @@ static void hpcm_copy_playback_data_from_queue(struct dai_data *dai_data,
 				struct hpcm_buf_node, list);
 		list_del(&buf_node->list);
 		*len = buf_node->frame.len;
+		if (*len > HPCM_MAX_VOC_PKT_SIZE) {
+			pr_err("%s: Playback data len %d overflow\n",
+					__func__, *len);
+			return;
+		}
 		memcpy((u8 *)dai_data->vocpcm_ion_buffer.kvaddr,
 		       &buf_node->frame.voc_pkt[0],
 		       buf_node->frame.len);
@@ -687,6 +700,12 @@ static void hpcm_copy_capture_data_to_queue(struct dai_data *dai_data,
 
 	if (dai_data->substream == NULL)
 		return;
+
+	if (len > HPCM_MAX_VOC_PKT_SIZE) {
+		pr_err("%s: Copy capture data len %d overflow\n",
+			__func__, len);
+		return;
+	}
 
 	/* Copy out buffer packet into free_queue */
 	spin_lock_irqsave(&dai_data->dsp_lock, dsp_flags);

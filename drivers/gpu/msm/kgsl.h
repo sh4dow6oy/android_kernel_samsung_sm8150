@@ -83,7 +83,7 @@
 #define SCRATCH_RPTR_OFFSET(id) ((id) * sizeof(unsigned int))
 #define SCRATCH_RPTR_GPU_ADDR(dev, id) \
 	((dev)->scratch.gpuaddr + SCRATCH_RPTR_OFFSET(id))
-
+	
 /* OFFSET to KMD postamble packets in scratch buffer */
 #define SCRATCH_POSTAMBLE_OFFSET (100 * sizeof(u64))
 #define SCRATCH_POSTAMBLE_ADDR(dev) \
